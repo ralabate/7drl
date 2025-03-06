@@ -9,13 +9,45 @@ let camera;
 let ground; 
 let box;
 
-const playerSpeed = 0.125; 
+const playerSpeed = 0.1; 
 let player;
 let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
 
 const bulletSpeed = 0.25;
 let bulletList = [];
+
+let badguyList = [];
+
+
+const createMeshContainer = function (result) {
+    const meshContainer = new BABYLON.AssetContainer(scene);
+    meshContainer.meshes = result.meshes;
+    meshContainer.transformNodes = result.transformNodes;
+    meshContainer.skeletons = result.skeletons;
+    meshContainer.animationGroups = result.animationGroups;
+
+    return meshContainer;
+}
+
+
+const loadMeshContainers = async function () {
+    const idleResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_idle_29F.glb", scene);
+    const walkResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_walk_29F.glb", scene);
+    const attackResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_attack_10F.glb", scene);
+
+    let meshContainers = {
+        idle: createMeshContainer(idleResult),
+        walk: createMeshContainer(walkResult),
+        attack: createMeshContainer(attackResult),
+    };
+
+    meshContainers.idle.removeAllFromScene();
+    meshContainers.walk.removeAllFromScene();
+    meshContainers.attack.removeAllFromScene();
+
+    return meshContainers;
+}
 
 
 const loadEnvironment = function () {
@@ -36,16 +68,12 @@ const loadEnvironment = function () {
 };
 
 
-const loadPlayer = async function () {
-    const idleResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_idle_29F.glb", scene);
-    const walkResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_walk_29F.glb", scene);
-    const attackResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_attack_10F.glb", scene);
-    
+const createCharacter = function (idle, walk, attack, collision) {
     let newPlayer = {
-        idleMesh: idleResult.meshes[0],
-        walkMesh: walkResult.meshes[0],
-        attackMesh: attackResult.meshes[0],
-        collisionMesh: idleResult.meshes[1].clone(),
+        idleMesh: idle.clone(),
+        walkMesh: walk.clone(),
+        attackMesh: attack.clone(),
+        collisionMesh: collision.clone(),
         transform: new BABYLON.TransformNode("player", scene),
     };
 
@@ -54,27 +82,27 @@ const loadPlayer = async function () {
     newPlayer.attackMesh.setParent(newPlayer.transform);
     newPlayer.collisionMesh.setParent(newPlayer.transform);
 
-    newPlayer.transform.position = new BABYLON.Vector3(-3, 3, 0);
-    newPlayer.collisionMesh.isVisible = false;
+    newPlayer.collisionMesh.isVisible = true;
+    newPlayer.collisionMesh.showBoundingBox = true;
     
     return newPlayer;
 };
 
 
-const setPlayerState = function (player, state) {
-    player.idleMesh.setEnabled(false);
-    player.walkMesh.setEnabled(false);
-    player.attackMesh.setEnabled(false);
+const setCharacterState = function (character, state) {
+    character.idleMesh.setEnabled(false);
+    character.walkMesh.setEnabled(false);
+    character.attackMesh.setEnabled(false);
 
     switch (state) {
         case "idle":
-            player.idleMesh.setEnabled(true);
+            character.idleMesh.setEnabled(true);
             break;
         case "walk":
-            player.walkMesh.setEnabled(true);
+            character.walkMesh.setEnabled(true);
             break;
         case "attack":
-            player.attackMesh.setEnabled(true);
+            character.attackMesh.setEnabled(true);
             break;            
         default:
             break;
@@ -97,8 +125,30 @@ function spawnBullet(origin) {
 
 
 const start = async function () {
-    player = await loadPlayer();
-    setPlayerState(player, "idle");
+    let meshContainers = await loadMeshContainers();
+
+    player = createCharacter(
+        meshContainers.idle.meshes[0],
+        meshContainers.walk.meshes[0],
+        meshContainers.attack.meshes[0],
+        meshContainers.idle.meshes[1],
+    );
+
+    player.transform.position = new BABYLON.Vector3(-3, 3, 0);
+    setCharacterState(player, "idle");
+
+    for (let i = 0; i < 5; ++i) {
+        let badguy = createCharacter(
+            meshContainers.idle.meshes[0],
+            meshContainers.walk.meshes[0],
+            meshContainers.attack.meshes[0],
+            meshContainers.idle.meshes[1],
+        );
+    
+        badguy.transform.position = new BABYLON.Vector3(3, 0, 4 + (i * -2));
+        setCharacterState(badguy, "walk");
+        badguyList.push(badguy);
+    }
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -165,7 +215,7 @@ const handleInput = function (kbInfo) {
             } 
             
             if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
-                setPlayerState(player, "walk");
+                setCharacterState(player, "walk");
             }
         }
 
@@ -182,7 +232,7 @@ const handleInput = function (kbInfo) {
         }
 
         if (direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
-            setPlayerState(player, "idle");
+            setCharacterState(player, "idle");
         }
     }
 };
