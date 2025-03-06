@@ -6,12 +6,16 @@ const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engi
 const scene = new BABYLON.Scene(engine);
 
 let camera;
-let ground;
+let ground; 
 let box;
+
+const playerSpeed = 0.125; 
 let player;
-let bulletList = [];
 let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
+
+const bulletSpeed = 0.25;
+let bulletList = [];
 
 
 const loadEnvironment = function () {
@@ -76,6 +80,20 @@ const setPlayerState = function (state) {
 };
 
 
+function spawnBullet(origin) {
+    const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.25, height: 0.25, depth: 0.5 });
+    bullet.position = origin.transform.position.clone();
+    bullet.position.y += 0.75;
+    bullet.lookAt(bullet.position.add(origin.transform.forward));
+
+    const bulletMaterial = new BABYLON.StandardMaterial("bullet");
+    bulletMaterial.diffuseColor = BABYLON.Color3.Magenta();
+    bullet.material = bulletMaterial;
+
+    bulletList.push(bullet);
+}
+
+
 const start = async function () {
     player = await loadPlayer();
     
@@ -89,9 +107,11 @@ const start = async function () {
 const update = function () {
     direction.normalize();
 
+    const deltaTime = scene.getAnimationRatio();
+
     // Update bullets
     bulletList.forEach((bullet) => {
-        bullet.position.addInPlace(bullet.forward.scale(0.025));
+        bullet.position.addInPlace(bullet.forward.scale(bulletSpeed * deltaTime));
     });
 
     // Rotate to face direction of movement
@@ -114,7 +134,7 @@ const update = function () {
         player.transform.position.y = previousPosition.y;
     }
 
-    player.transform.position.addInPlace(direction.scale(0.025));
+    player.transform.position.addInPlace(direction.scale(playerSpeed * deltaTime));
 
     // Collisions
     if (player.collisionMesh.intersectsMesh(box, true)) {
@@ -131,34 +151,26 @@ const update = function () {
 
 const handleInput = function (kbInfo) {
     if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {
-        console.log(kbInfo.event.key);
-
         if (direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
             if (kbInfo.event.key == "a") {
                 direction.x = 1;
-            } else if (kbInfo.event.key == "d") {
+            }
+            else if (kbInfo.event.key == "d") {
                 direction.x = -1;
-            } else if (kbInfo.event.key == "w") {
+            }
+            else if (kbInfo.event.key == "w") {
                 direction.z = -1;
-            } else if (kbInfo.event.key == "s") {
+            }
+            else if (kbInfo.event.key == "s") {
                 direction.z = 1;
             }    
         }
 
         if (kbInfo.event.key == " ") {
-            console.log("BULLET");
-            const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.5, height: 0.5, depth: 0.5 });
-            bullet.position = player.transform.position.clone();
-            bullet.lookAt(bullet.position.add(player.transform.forward));
-            bullet.showBoundingBox = true; 
-            
-            const bulletMaterial = new BABYLON.StandardMaterial("bullet");
-            bulletMaterial.diffuseColor = BABYLON.Color3.Magenta();
-            bullet.material = bulletMaterial;
-
-            bulletList.push(bullet);
+            spawnBullet(player);
         }
-    } else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) {
+    }
+    else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) {
         if (kbInfo.event.key == "a" || kbInfo.event.key == "d") {
             direction.x = 0;
         }
