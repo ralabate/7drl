@@ -82,7 +82,7 @@ const createCharacter = function (idle, walk, attack, collision) {
     newPlayer.attackMesh.setParent(newPlayer.transform);
     newPlayer.collisionMesh.setParent(newPlayer.transform);
 
-    newPlayer.collisionMesh.isVisible = true;
+    newPlayer.collisionMesh.isVisible = false;
     newPlayer.collisionMesh.showBoundingBox = true;
     
     return newPlayer;
