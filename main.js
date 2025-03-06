@@ -55,11 +55,13 @@ const loadPlayer = async function () {
     newPlayer.collisionMesh.setParent(newPlayer.transform);
 
     newPlayer.transform.position = new BABYLON.Vector3(-3, 3, 0);
+    newPlayer.collisionMesh.isVisible = false;
+    
     return newPlayer;
 };
 
 
-const setPlayerState = function (state) {
+const setPlayerState = function (player, state) {
     player.idleMesh.setEnabled(false);
     player.walkMesh.setEnabled(false);
     player.attackMesh.setEnabled(false);
@@ -96,6 +98,7 @@ function spawnBullet(origin) {
 
 const start = async function () {
     player = await loadPlayer();
+    setPlayerState(player, "idle");
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -117,10 +120,6 @@ const update = function () {
     // Rotate to face direction of movement
     if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
         facing = direction.clone();
-        setPlayerState("walk");
-    }
-    else {
-        setPlayerState("idle");
     }
 
     const targetPosition = player.transform.position.add(facing.normalize());
@@ -163,7 +162,11 @@ const handleInput = function (kbInfo) {
             }
             else if (kbInfo.event.key == "s") {
                 direction.z = 1;
-            }    
+            } 
+            
+            if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
+                setPlayerState(player, "walk");
+            }
         }
 
         if (kbInfo.event.key == " ") {
@@ -174,9 +177,12 @@ const handleInput = function (kbInfo) {
         if (kbInfo.event.key == "a" || kbInfo.event.key == "d") {
             direction.x = 0;
         }
-
-        if (kbInfo.event.key == "w" || kbInfo.event.key == "s") {
+        else if (kbInfo.event.key == "w" || kbInfo.event.key == "s") {
             direction.z = 0;
+        }
+
+        if (direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
+            setPlayerState(player, "idle");
         }
     }
 };
