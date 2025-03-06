@@ -89,6 +89,11 @@ const createCharacter = function (idle, walk, attack, collision) {
 };
 
 
+const destroyCharacter = function (character) {
+    character.transform.dispose();
+};
+
+
 const setCharacterState = function (character, state) {
     character.idleMesh.setEnabled(false);
     character.walkMesh.setEnabled(false);
@@ -163,9 +168,34 @@ const update = function () {
     const deltaTime = scene.getAnimationRatio();
 
     // Update bullets
-    bulletList.forEach((bullet) => {
+    let dead_bullets = [];
+    let dead_badguys = [];
+    for (let bullet of bulletList) {
         bullet.position.addInPlace(bullet.forward.scale(bulletSpeed * deltaTime));
-    });
+
+        for (let badguy of badguyList) {
+            if (bullet.intersectsMesh(badguy.collisionMesh, true)) {
+                console.log("Bullet collided with badguy!");
+                dead_badguys.push(badguy);
+                dead_bullets.push(bullet);
+                destroyCharacter(badguy);
+                bullet.dispose();
+                break;
+            }
+        }
+    }
+
+    // Remove dead bullets and badguys.
+    for (let bullet of dead_bullets) {
+        const index = bulletList.indexOf(bullet);
+        if (index !== -1) bulletList.splice(index, 1);
+    }
+    
+    for (let badguy of dead_badguys) {
+        const index = badguyList.indexOf(badguy);
+        if (index !== -1) badguyList.splice(index, 1);
+    }
+
 
     // Rotate to face direction of movement
     if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
