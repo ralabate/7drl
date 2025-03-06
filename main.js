@@ -15,8 +15,9 @@ let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
 
 const bulletSpeed = 0.25;
-let bulletList = [];
+const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
+let bulletList = [];
 let badguyList = [];
 
 
@@ -121,9 +122,8 @@ function spawnBullet(origin) {
     bullet.position.y += 0.75;
     bullet.lookAt(bullet.position.add(origin.transform.forward));
 
-    const bulletMaterial = new BABYLON.StandardMaterial("bullet");
-    bulletMaterial.diffuseColor = BABYLON.Color3.Magenta();
     bullet.material = bulletMaterial;
+    bullet.material.diffuseColor = BABYLON.Color3.Random();
 
     bulletList.push(bullet);
 }
@@ -230,7 +230,7 @@ const update = function () {
 
 const handleInput = function (kbInfo) {
     if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {
-        if (direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
+        // if (direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
             if (kbInfo.event.key == "a") {
                 direction.x = 1;
             }
@@ -247,7 +247,7 @@ const handleInput = function (kbInfo) {
             if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
                 setCharacterState(player, "walk");
             }
-        }
+        // }
 
         if (kbInfo.event.key == " ") {
             spawnBullet(player);
