@@ -9,10 +9,11 @@ let camera;
 let ground; 
 let box;
 
-const playerSpeed = 0.1; 
+const playerSpeed = 0.05; 
 let player;
 let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
+let canSpawnBullet = true;
 
 const bulletSpeed = 0.25;
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
@@ -249,9 +250,14 @@ const handleInput = function (kbInfo) {
             }
         // }
 
-        if (kbInfo.event.key == " ") {
+        if (canSpawnBullet && kbInfo.event.key == " ") {
             spawnBullet(player);
             setCharacterState(player, "attack");
+            canSpawnBullet = false;
+
+            setTimeout(() => {
+                canSpawnBullet = true;
+            }, 250);
         }
     }
     else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) {
