@@ -251,6 +251,7 @@ const handleInput = function (kbInfo) {
 
         if (kbInfo.event.key == " ") {
             spawnBullet(player);
+            setCharacterState(player, "attack");
         }
     }
     else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) {
