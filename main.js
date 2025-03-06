@@ -132,21 +132,17 @@ const update = function () {
 const handleInput = function (kbInfo) {
     if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {
         console.log(kbInfo.event.key);
-        
-        if (kbInfo.event.key == "a") {
-            direction.x = 1;
-        }
 
-        if (kbInfo.event.key == "d") {
-            direction.x = -1;
-        }
-
-        if (kbInfo.event.key == "w") {
-            direction.z = -1;
-        }
-
-        if (kbInfo.event.key == "s") {
-            direction.z = 1;
+        if (direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
+            if (kbInfo.event.key == "a") {
+                direction.x = 1;
+            } else if (kbInfo.event.key == "d") {
+                direction.x = -1;
+            } else if (kbInfo.event.key == "w") {
+                direction.z = -1;
+            } else if (kbInfo.event.key == "s") {
+                direction.z = 1;
+            }    
         }
 
         if (kbInfo.event.key == " ") {
@@ -163,19 +159,11 @@ const handleInput = function (kbInfo) {
             bulletList.push(bullet);
         }
     } else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) {
-        if (kbInfo.event.key == "a") {
+        if (kbInfo.event.key == "a" || kbInfo.event.key == "d") {
             direction.x = 0;
         }
 
-        if (kbInfo.event.key == "d") {
-            direction.x = 0;
-        }
-
-        if (kbInfo.event.key == "w") {
-            direction.z = 0;
-        }
-
-        if (kbInfo.event.key == "s") {
+        if (kbInfo.event.key == "w" || kbInfo.event.key == "s") {
             direction.z = 0;
         }
     }
