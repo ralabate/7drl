@@ -80,7 +80,6 @@ const createCharacter = function (idle, walk, attack, collision) {
         walkMesh: walk.clone(),
         attackMesh: attack.clone(),
         collisionMesh: boundingBox.clone(),
-        transform: new BABYLON.TransformNode("player", scene),
     };
 
     newPlayer.idleMesh.setParent(newPlayer.collisionMesh);
@@ -98,7 +97,7 @@ const createCharacter = function (idle, walk, attack, collision) {
 
 
 const destroyCharacter = function (character) {
-    character.transform.dispose();
+    character.collisionMesh.dispose();
 };
 
 
@@ -125,9 +124,9 @@ const setCharacterState = function (character, state) {
 
 function spawnBullet(origin) {
     const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.25, height: 0.25, depth: 0.5 });
-    bullet.position = origin.transform.position.clone();
+    bullet.position = origin.position.clone();
     bullet.position.y += 0.75;
-    bullet.lookAt(bullet.position.add(origin.transform.forward));
+    bullet.lookAt(bullet.position.add(origin.forward));
 
     bullet.material = bulletMaterial;
     bullet.material.diffuseColor = BABYLON.Color3.Random();
@@ -157,7 +156,7 @@ const start = async function () {
             meshContainers.idle.meshes[1],
         );
     
-        badguy.transform.position = new BABYLON.Vector3(3, 0, 4 + (i * -2));
+        badguy.collisionMesh.position = new BABYLON.Vector3(3, 1, 4 + (i * -2));
         setCharacterState(badguy, "walk");
         badguyList.push(badguy);
     }
@@ -247,7 +246,7 @@ const handleInput = function (kbInfo) {
         }
 
         if (canSpawnBullet && kbInfo.event.key == " ") {
-            spawnBullet(player);
+            spawnBullet(player.collisionMesh);
             setCharacterState(player, "attack");
             canSpawnBullet = false;
 
