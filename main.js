@@ -8,6 +8,7 @@ const scene = new BABYLON.Scene(engine);
 let camera;
 let ground; 
 let box;
+let test=42;
 
 const playerSpeed = 0.05; 
 let player;
