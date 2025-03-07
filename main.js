@@ -34,9 +34,9 @@ const createMeshContainer = function (result) {
 
 
 const loadMeshContainers = async function () {
-    const idleResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_idle_29F.glb", scene);
-    const walkResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_walk_29F.glb", scene);
-    const attackResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/rop_gltfcharacteroutput_attack_10F.glb", scene);
+    const idleResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/lizard_prince_idle.glb", scene);
+    const walkResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/lizard_prince_walk.glb", scene);
+    const attackResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/lizard_prince_attack.glb", scene);
 
     let meshContainers = {
         idle: createMeshContainer(idleResult),
