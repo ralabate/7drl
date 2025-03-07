@@ -52,6 +52,26 @@ const loadMeshContainers = async function () {
 }
 
 
+const loadBadMeshContainers = async function () {
+    const idleResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_idle.glb", scene);
+    const walkResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_walk.glb", scene);
+    const attackResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_attack.glb", scene);
+
+    let meshContainers = {
+        idle: createMeshContainer(idleResult),
+        walk: createMeshContainer(walkResult),
+        attack: createMeshContainer(attackResult),
+    };
+
+    meshContainers.idle.removeAllFromScene();
+    meshContainers.walk.removeAllFromScene();
+    meshContainers.attack.removeAllFromScene();
+
+    return meshContainers;
+}
+
+
+
 const createMovingPlatform = function (x, z, width, height, depth) {
     const animatedBox = BABYLON.MeshBuilder.CreateBox("animatedBox", { width: width, height: height, depth: depth });
     animatedBox.position = new BABYLON.Vector3(x, 0, z);
@@ -179,11 +199,13 @@ const start = async function () {
     player.collisionMesh.position = new BABYLON.Vector3(-3, 3, 0);
     setCharacterState(player, "idle");
 
+    let badMeshContainers = await loadBadMeshContainers();
+    
     for (let i = 0; i < 5; ++i) {
         let badguy = createCharacter(
-            meshContainers.idle.meshes[0],
-            meshContainers.walk.meshes[0],
-            meshContainers.attack.meshes[0],
+            badMeshContainers.idle.meshes[0],
+            badMeshContainers.walk.meshes[0],
+            badMeshContainers.attack.meshes[0],
         );
     
         badguy.collisionMesh.position = new BABYLON.Vector3(3, 1, 4 + (i * -2));
