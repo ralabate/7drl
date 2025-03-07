@@ -1,6 +1,5 @@
 /// <reference path="babylon.d.ts" />
 
-
 const canvas = document.getElementById("renderCanvas"); // Get the canvas element
 const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 const scene = new BABYLON.Scene(engine);
@@ -8,7 +7,8 @@ const scene = new BABYLON.Scene(engine);
 let camera;
 let ground; 
 let box;
-let test=42;
+let is_debugger_showing = false;
+
 
 const playerSpeed = 0.05; 
 let player;
@@ -22,6 +22,50 @@ const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 let bulletList = [];
 let badguyList = [];
 
+const ncr_import_test = async function () {
+
+    const imported_items = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_walk.glb", scene);
+
+    asset_container = new BABYLON.AssetContainer(scene);
+    asset_container.meshes = imported_items.meshes;
+    asset_container.transformNodes = imported_items.transformNodes;
+    asset_container.skeletons = imported_items.skeletons;
+    asset_container.animationGroups = imported_items.animationGroups;
+
+    const more_imported_items = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_idle.glb", scene);
+
+    dummy_asset_container_1 = new BABYLON.AssetContainer(scene);
+    dummy_asset_container_1.meshes = more_imported_items.meshes;
+    dummy_asset_container_1.transformNodes= more_imported_items.transformNodes;
+    dummy_asset_container_1.skeletons = more_imported_items.skeletons;
+    asset_container.animationGroups.push(more_imported_items.animationGroups[0]);
+
+    const yet_more_imported_items = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_attack.glb", scene);
+
+    dummy_asset_container_2 = new BABYLON.AssetContainer(scene);
+    dummy_asset_container_2.meshes = yet_more_imported_items.meshes;
+    dummy_asset_container_2.transformNodes= yet_more_imported_items.transformNodes;
+    dummy_asset_container_2.skeletons = yet_more_imported_items.skeletons;
+    asset_container.animationGroups.push(yet_more_imported_items.animationGroups[0]);
+
+    for (let i = 0; i < 8; ++i) {
+      const instantiated_items = asset_container.instantiateModelsToScene();
+
+      for (let rn of instantiated_items.rootNodes) {
+        rn.position.x += i;
+      }
+
+      for (let ag of instantiated_items.animationGroups) {
+        ag.play(true);
+        ag.goToFrame(10 * i);
+      }
+    }
+
+    // get rid of everything besides our instantiated lizards
+    asset_container.removeAllFromScene();
+    dummy_asset_container_1.removeAllFromScene();
+    dummy_asset_container_2.removeAllFromScene();
+}
 
 const createMeshContainer = function (result) {
     const meshContainer = new BABYLON.AssetContainer(scene);
@@ -63,6 +107,8 @@ const loadBadMeshContainers = async function () {
         walk: createMeshContainer(walkResult),
         attack: createMeshContainer(attackResult),
     };
+
+    meshContainers.
 
     meshContainers.idle.removeAllFromScene();
     meshContainers.walk.removeAllFromScene();
@@ -200,6 +246,9 @@ const start = async function () {
     player.collisionMesh.position = new BABYLON.Vector3(-3, 3, 0);
     setCharacterState(player, "idle");
 
+    ncr_import_test();
+
+    /* 
     let badMeshContainers = await loadBadMeshContainers();
     
     for (let i = 0; i < 5; ++i) {
@@ -213,6 +262,7 @@ const start = async function () {
         setCharacterState(badguy, "walk");
         badguyList.push(badguy);
     }
+    */
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
