@@ -103,7 +103,7 @@ const loadEnvironment = function () {
 };
 
 
-const createCharacter = function (idle, walk, attack, collision) {
+const createCharacter = function (idle, walk, attack) {
     const boundingBox = BABYLON.MeshBuilder.CreateBox("characterBoundingBox", { width: 1, height: 2, depth: 1 });
     boundingBox.position = new BABYLON.Vector3(0, 1, 0);
 
@@ -174,7 +174,6 @@ const start = async function () {
         meshContainers.idle.meshes[0],
         meshContainers.walk.meshes[0],
         meshContainers.attack.meshes[0],
-        meshContainers.idle.meshes[1],
     );
 
     player.collisionMesh.position = new BABYLON.Vector3(-3, 3, 0);
@@ -185,7 +184,6 @@ const start = async function () {
             meshContainers.idle.meshes[0],
             meshContainers.walk.meshes[0],
             meshContainers.attack.meshes[0],
-            meshContainers.idle.meshes[1],
         );
     
         badguy.collisionMesh.position = new BABYLON.Vector3(3, 1, 4 + (i * -2));
