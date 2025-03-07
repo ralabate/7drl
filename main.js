@@ -52,22 +52,54 @@ const loadMeshContainers = async function () {
 }
 
 
+const createMovingPlatform = function (x, z, width, height, depth) {
+    const animatedBox = BABYLON.MeshBuilder.CreateBox("animatedBox", { width: width, height: height, depth: depth });
+    animatedBox.position = new BABYLON.Vector3(x, 0, z);
+    animatedBox.checkCollisions = true;
+    const animatedBoxMaterial = new BABYLON.StandardMaterial("animatedBox");
+    animatedBoxMaterial.diffuseColor = BABYLON.Color3.Blue();
+    animatedBox.material = animatedBoxMaterial;
+
+    const animation = new BABYLON.Animation(
+        "boxAnimation",
+        "position.y",
+        30,
+        BABYLON.Animation.ANIMATIONTYPE_FLOAT,
+        BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
+    );
+
+    const keys = [
+        { frame: 0, value: animatedBox.position.y - (height * 0.5) },
+        { frame: 30, value: animatedBox.position.y + (height * 0.5) },
+        { frame: 60, value: animatedBox.position.y - (height * 0.5) },
+    ];
+
+    animation.setKeys(keys);
+    animatedBox.animations.push(animation);
+
+    scene.beginAnimation(animatedBox, 0, 60, true);
+}
+
+
 const loadEnvironment = function () {
-    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, 10), scene);
+    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, 10));
     camera.setTarget(BABYLON.Vector3.Zero());
     camera.attachControl(canvas, true);
 
-    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0));
     light.intensity = 0.7;
 
-    ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, scene);
+    ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 10, height: 10 });
+    ground.checkCollisions = true;
 
-    box = BABYLON.MeshBuilder.CreateBox("box1", { width: 2, height: 2, depth: 2 }, scene);
+    box = BABYLON.MeshBuilder.CreateBox("box1", { size: 2 });
     box.position = new BABYLON.Vector3(-3, 1, 0);
     const boxMaterial = new BABYLON.StandardMaterial("box1");
     boxMaterial.diffuseColor = BABYLON.Color3.Red();
     box.material = boxMaterial;
     box.checkCollisions = true;
+
+    createMovingPlatform(0, 0, 2, 2, 2);
 };
 
 
@@ -202,7 +234,6 @@ const update = function () {
         if (index !== -1) badguyList.splice(index, 1);
     }
 
-
     // Rotate to face direction of movement
     if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
         facing = direction.clone();
@@ -211,18 +242,9 @@ const update = function () {
     const targetPosition = player.collisionMesh.position.add(facing.normalize());
     player.collisionMesh.lookAt(targetPosition);
 
-    // Gravity
-    let previousPosition = player.collisionMesh.position.clone();
-
-    player.collisionMesh.position.y -= 0.1;
-    if (player.collisionMesh.intersectsMesh(ground, true)) {
-        player.collisionMesh.position.y = previousPosition.y;
-    }
-    else if (player.collisionMesh.intersectsMesh(box, true) && player.collisionMesh.position.y > 0) {
-        player.collisionMesh.position.y = previousPosition.y;
-    }
-
-    player.collisionMesh.moveWithCollisions(direction.scale(playerSpeed * deltaTime));
+    // Movement code and gravity using built-in collision detection
+    let movementVector = direction.scale(playerSpeed * deltaTime).add(BABYLON.Vector3.Down().scale(0.1));
+    player.collisionMesh.moveWithCollisions(movementVector);
 };
 
 
