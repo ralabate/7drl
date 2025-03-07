@@ -309,6 +309,19 @@ const handleInput = function (kbInfo) {
             setCharacterState(player, "idle");
         }
     }
+    // DEBUG //////////////////////////////////////////////////////////
+    if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {
+        if (kbInfo.event.key == "g") {
+          if (!is_debugger_showing) {
+            scene.debugLayer.show();
+            is_debugger_showing = true;
+          } else {
+            scene.debugLayer.hide();
+            is_debugger_showing = false;
+          }
+        }
+    }
+    // DEBUG //////////////////////////////////////////////////////////
 };
 
 
