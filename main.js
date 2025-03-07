@@ -67,25 +67,31 @@ const loadEnvironment = function () {
     const boxMaterial = new BABYLON.StandardMaterial("box1");
     boxMaterial.diffuseColor = BABYLON.Color3.Red();
     box.material = boxMaterial;
+    box.checkCollisions = true;
 };
 
 
 const createCharacter = function (idle, walk, attack, collision) {
+    const boundingBox = BABYLON.MeshBuilder.CreateBox("characterBoundingBox", { width: 1, height: 2, depth: 1 });
+    boundingBox.position = new BABYLON.Vector3(0, 1, 0);
+
     let newPlayer = {
         idleMesh: idle.clone(),
         walkMesh: walk.clone(),
         attackMesh: attack.clone(),
-        collisionMesh: collision.clone(),
+        collisionMesh: boundingBox.clone(),
         transform: new BABYLON.TransformNode("player", scene),
     };
 
-    newPlayer.idleMesh.setParent(newPlayer.transform);
-    newPlayer.walkMesh.setParent(newPlayer.transform);
-    newPlayer.attackMesh.setParent(newPlayer.transform);
-    newPlayer.collisionMesh.setParent(newPlayer.transform);
+    newPlayer.idleMesh.setParent(newPlayer.collisionMesh);
+    newPlayer.walkMesh.setParent(newPlayer.collisionMesh);
+    newPlayer.attackMesh.setParent(newPlayer.collisionMesh);
 
     newPlayer.collisionMesh.isVisible = false;
     newPlayer.collisionMesh.showBoundingBox = true;
+    newPlayer.collisionMesh.checkCollisions = true;
+
+    boundingBox.dispose();
     
     return newPlayer;
 };
@@ -140,7 +146,7 @@ const start = async function () {
         meshContainers.idle.meshes[1],
     );
 
-    player.transform.position = new BABYLON.Vector3(-3, 3, 0);
+    player.collisionMesh.position = new BABYLON.Vector3(-3, 3, 0);
     setCharacterState(player, "idle");
 
     for (let i = 0; i < 5; ++i) {
@@ -203,52 +209,42 @@ const update = function () {
         facing = direction.clone();
     }
 
-    const targetPosition = player.transform.position.add(facing.normalize());
-    player.transform.lookAt(targetPosition);
+    const targetPosition = player.collisionMesh.position.add(facing.normalize());
+    player.collisionMesh.lookAt(targetPosition);
 
-    // Movement & gravity
-    let previousPosition = player.transform.position.clone();
+    // Gravity
+    let previousPosition = player.collisionMesh.position.clone();
 
-    player.transform.position.y -= 0.1;
+    player.collisionMesh.position.y -= 0.1;
     if (player.collisionMesh.intersectsMesh(ground, true)) {
-        player.transform.position.y = previousPosition.y;
+        player.collisionMesh.position.y = previousPosition.y;
+    }
+    else if (player.collisionMesh.intersectsMesh(box, true) && player.collisionMesh.position.y > 0) {
+        player.collisionMesh.position.y = previousPosition.y;
     }
 
-    player.transform.position.addInPlace(direction.scale(playerSpeed * deltaTime));
-
-    // Collisions
-    if (player.collisionMesh.intersectsMesh(box, true)) {
-        if (player.transform.position.y > 0) {
-            player.transform.position.y = previousPosition.y;
-        }
-        else {
-            player.transform.position.x = previousPosition.x;
-            player.transform.position.z = previousPosition.z;
-        }
-    }
+    player.collisionMesh.moveWithCollisions(direction.scale(playerSpeed * deltaTime));
 };
 
 
 const handleInput = function (kbInfo) {
     if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {
-        // if (direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
-            if (kbInfo.event.key == "a") {
-                direction.x = 1;
-            }
-            else if (kbInfo.event.key == "d") {
-                direction.x = -1;
-            }
-            else if (kbInfo.event.key == "w") {
-                direction.z = -1;
-            }
-            else if (kbInfo.event.key == "s") {
-                direction.z = 1;
-            } 
-            
-            if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
-                setCharacterState(player, "walk");
-            }
-        // }
+        if (kbInfo.event.key == "a") {
+            direction = BABYLON.Vector3.Right();
+        }
+        else if (kbInfo.event.key == "d") {
+            direction = BABYLON.Vector3.Left();
+        }
+        else if (kbInfo.event.key == "w") {
+            direction = BABYLON.Vector3.Backward();
+        }
+        else if (kbInfo.event.key == "s") {
+            direction = BABYLON.Vector3.Forward();
+        } 
+        
+        if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
+            setCharacterState(player, "walk");
+        }
 
         if (canSpawnBullet && kbInfo.event.key == " ") {
             spawnBullet(player);
