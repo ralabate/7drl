@@ -272,7 +272,8 @@ const update = function () {
       bg.collisionMesh.position.z = bg.agentMesh.position.z; 
     }
 
-    let pathPoints = navigation_plugin.computePath(crowd.getAgentPosition(3), navigation_plugin.getClosestPoint(dest));
+    let idx = crowd.getAgents()[0];
+    let pathPoints = navigation_plugin.computePath(crowd.getAgentPosition(idx), navigation_plugin.getClosestPoint(dest));
     pathLine = BABYLON.MeshBuilder.CreateDashedLines("ribbon", {points: pathPoints, updatable: true, instance: pathLine}, scene);
     
     // Update bullets
