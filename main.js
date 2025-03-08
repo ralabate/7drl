@@ -16,7 +16,7 @@ let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
 let canSpawnBullet = true;
 
-const bulletSpeed = 0.25;
+const bulletSpeed = 6.10; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
 let bulletList = [];
@@ -222,9 +222,10 @@ const setCharacterState = function (character, state) {
 
 
 function spawnBullet(origin) {
-    const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.25, height: 0.25, depth: 0.5 });
+    const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.05, height: 0.05, depth: 0.15 });
     bullet.position = origin.position.clone();
-    bullet.position.y += 0.75;
+    bullet.position.y += 0.10;
+    bullet.position.x += 0.55;
     bullet.lookAt(bullet.position.add(origin.forward));
 
     bullet.material = bulletMaterial;
@@ -280,7 +281,9 @@ const update = function () {
     let dead_bullets = [];
     let dead_badguys = [];
     for (let bullet of bulletList) {
-        bullet.position.addInPlace(bullet.forward.scale(bulletSpeed * deltaTime));
+
+        let delta_time_in_seconds = scene.deltaTime / 1000.0;
+        bullet.position.addInPlace(bullet.forward.scale(bulletSpeed * delta_time_in_seconds));
 
         for (let badguy of badguyList) {
             if (bullet.intersectsMesh(badguy.collisionMesh, true)) {
