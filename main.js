@@ -23,53 +23,9 @@ let canSpawnBullet = true;
 const bulletSpeed = 6.10; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
+const badguySpeed = 0.3; // in meters per second
 let bulletList = [];
 let badguyList = [];
-
-const ncr_import_test = async function () {
-
-    const imported_items = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_walk.glb", scene);
-
-    asset_container = new BABYLON.AssetContainer(scene);
-    asset_container.meshes = imported_items.meshes;
-    asset_container.transformNodes = imported_items.transformNodes;
-    asset_container.skeletons = imported_items.skeletons;
-    asset_container.animationGroups = imported_items.animationGroups;
-
-    const more_imported_items = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_idle.glb", scene);
-
-    dummy_asset_container_1 = new BABYLON.AssetContainer(scene);
-    dummy_asset_container_1.meshes = more_imported_items.meshes;
-    dummy_asset_container_1.transformNodes= more_imported_items.transformNodes;
-    dummy_asset_container_1.skeletons = more_imported_items.skeletons;
-    asset_container.animationGroups.push(more_imported_items.animationGroups[0]);
-
-    const yet_more_imported_items = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_attack.glb", scene);
-
-    dummy_asset_container_2 = new BABYLON.AssetContainer(scene);
-    dummy_asset_container_2.meshes = yet_more_imported_items.meshes;
-    dummy_asset_container_2.transformNodes= yet_more_imported_items.transformNodes;
-    dummy_asset_container_2.skeletons = yet_more_imported_items.skeletons;
-    asset_container.animationGroups.push(yet_more_imported_items.animationGroups[0]);
-
-    for (let i = 0; i < 8; ++i) {
-      const instantiated_items = asset_container.instantiateModelsToScene();
-
-      for (let rn of instantiated_items.rootNodes) {
-        rn.position.x += i;
-      }
-
-      for (let ag of instantiated_items.animationGroups) {
-        ag.play(true);
-        ag.goToFrame(10 * i);
-      }
-    }
-
-    // get rid of everything besides our instantiated lizards
-    asset_container.removeAllFromScene();
-    dummy_asset_container_1.removeAllFromScene();
-    dummy_asset_container_2.removeAllFromScene();
-}
 
 const createMeshContainer = function (result) {
     const meshContainer = new BABYLON.AssetContainer(scene);
@@ -177,6 +133,7 @@ const createCharacter = function (idle, walk, attack) {
         walkMesh: walk.clone(),
         attackMesh: attack.clone(),
         collisionMesh: boundingBox.clone(),
+        agentMesh: BABYLON.MeshBuilder.CreateSphere("", {diameter: 0.4}),
     };
 
     newPlayer.idleMesh.setParent(newPlayer.collisionMesh);
@@ -186,6 +143,8 @@ const createCharacter = function (idle, walk, attack) {
     newPlayer.collisionMesh.isVisible = false;
     newPlayer.collisionMesh.showBoundingBox = true;
     newPlayer.collisionMesh.checkCollisions = true;
+
+    //newPlayer.agentMesh.isVisible = false;
 
     boundingBox.dispose();
     
@@ -266,16 +225,16 @@ const start = async function () {
     crowd = navigation_plugin.createCrowd(1, 0.1, scene);
 
     let agentParms = {
-      radius: 1.0,
-      height: 1.2,
+      radius: 0.4,
+      height: 0.4,
       maxAcceleration: 4.0,
-      maxSpeed: 0.5,
+      maxSpeed: badguySpeed,
       collisionQueryRange: 0.5,
       pathOptimizationRange: 0.0,
       separationWeight: 1.0,
     };
 
-    crowd.addAgent(navigation_plugin.getRandomPointAround(BABYLON.Vector3.Zero()), agentParms, badguyList[0].collisionMesh);
+    crowd.addAgent(navigation_plugin.getRandomPointAround(BABYLON.Vector3.Zero()), agentParms, badguyList[0].agentMesh);
 
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -292,6 +251,8 @@ const update = function () {
     // Update bad guys
     let dest = player.collisionMesh.position;
     crowd.agentGoto(0, navigation_plugin.getClosestPoint(dest));
+    badguyList[0].collisionMesh.position.x = badguyList[0].agentMesh.position.x; 
+    badguyList[0].collisionMesh.position.z = badguyList[0].agentMesh.position.z; 
 
     let pathPoints = navigation_plugin.computePath(crowd.getAgentPosition(0), navigation_plugin.getClosestPoint(dest));
     pathLine = BABYLON.MeshBuilder.CreateDashedLines("ribbon", {points: pathPoints, updatable: true, instance: pathLine}, scene);
