@@ -77,7 +77,6 @@ const createMeshContainer = function (result) {
     return meshContainer;
 }
 
-
 const loadMeshContainers = async function () {
     const idleResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/lizard_prince_idle.glb", scene);
     const walkResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/lizard_prince_walk.glb", scene);
@@ -95,7 +94,6 @@ const loadMeshContainers = async function () {
 
     return meshContainers;
 }
-
 
 const loadBadMeshContainers = async function () {
     const idleResult = await BABYLON.ImportMeshAsync("https://ralabate.github.io/7drl/bad_lizard_idle.glb", scene);
@@ -117,14 +115,12 @@ const loadBadMeshContainers = async function () {
     return meshContainers;
 }
 
-
-
 const createMovingPlatform = function (x, z, width, height, depth) {
     const animatedBox = BABYLON.MeshBuilder.CreateBox("animatedBox", { width: width, height: height, depth: depth });
     animatedBox.position = new BABYLON.Vector3(x, 0, z);
     animatedBox.checkCollisions = true;
     const animatedBoxMaterial = new BABYLON.StandardMaterial("animatedBox");
-    animatedBoxMaterial.diffuseColor = BABYLON.Color3.Blue();
+    animatedBoxMaterial.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.20);
     animatedBox.material = animatedBoxMaterial;
 
     const animation = new BABYLON.Animation(
@@ -137,16 +133,15 @@ const createMovingPlatform = function (x, z, width, height, depth) {
 
     const keys = [
         { frame: 0, value: animatedBox.position.y - (height * 0.5) },
-        { frame: 30, value: animatedBox.position.y + (height * 0.5) },
-        { frame: 60, value: animatedBox.position.y - (height * 0.5) },
+        { frame: 150, value: animatedBox.position.y + (height * 0.5) },
+        { frame: 300, value: animatedBox.position.y - (height * 0.5) },
     ];
 
     animation.setKeys(keys);
     animatedBox.animations.push(animation);
 
-    scene.beginAnimation(animatedBox, 0, 60, true);
+    scene.beginAnimation(animatedBox, 0, 300, true);
 }
-
 
 const loadEnvironment = function () {
     camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(10, 10, 20));
@@ -167,13 +162,12 @@ const loadEnvironment = function () {
     box = BABYLON.MeshBuilder.CreateBox("box1", { size: 2 });
     box.position = new BABYLON.Vector3(-3, 1, 0);
     const boxMaterial = new BABYLON.StandardMaterial("box1");
-    boxMaterial.diffuseColor = BABYLON.Color3.Red();
+    boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.05, 0.05);
     box.material = boxMaterial;
     box.checkCollisions = true;
 
     createMovingPlatform(0, 0, 2, 2, 2);
 };
-
 
 const createCharacter = function (idle, walk, attack) {
     const boundingBox = BABYLON.MeshBuilder.CreateBox("characterBoundingBox", { width: 1, height: 2, depth: 1 });
@@ -199,11 +193,9 @@ const createCharacter = function (idle, walk, attack) {
     return newPlayer;
 };
 
-
 const destroyCharacter = function (character) {
     character.collisionMesh.dispose();
 };
-
 
 const setCharacterState = function (character, state) {
     character.idleMesh.setEnabled(false);
@@ -225,7 +217,6 @@ const setCharacterState = function (character, state) {
     }
 };
 
-
 function spawnBullet(origin) {
     const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.05, height: 0.05, depth: 0.15 });
     bullet.position = origin.position.clone();
@@ -234,11 +225,10 @@ function spawnBullet(origin) {
     bullet.lookAt(bullet.position.add(origin.forward));
 
     bullet.material = bulletMaterial;
-    bullet.material.diffuseColor = BABYLON.Color3.Random();
+    bullet.material.diffuseColor = new BABYLON.Color3(1.0, 1.0, 0.3);
 
     bulletList.push(bullet);
 }
-
 
 const start = async function () {
     let meshContainers = await loadMeshContainers();
@@ -275,7 +265,6 @@ const start = async function () {
         scene.render();
     });
 };
-
 
 const update = function () {
     direction.normalize();
@@ -326,7 +315,6 @@ const update = function () {
     let movementVector = direction.scale(playerSpeed * delta_time_in_seconds).add(BABYLON.Vector3.Down().scale(0.1));
     player.collisionMesh.moveWithCollisions(movementVector);
 };
-
 
 const handleInput = function (kbInfo) {
     if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {
@@ -383,7 +371,6 @@ const handleInput = function (kbInfo) {
     }
     // DEBUG //////////////////////////////////////////////////////////
 };
-
 
 // Watch for browser/canvas resize events
 window.addEventListener("resize", function () {
