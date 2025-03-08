@@ -93,11 +93,11 @@ const loadEnvironment = function () {
     boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.05, 0.05);
 
     let mesh_list = [];
-    for (let i = 0; i < 20; ++i) {
-      let box = BABYLON.MeshBuilder.CreateBox("box" + i, { size: 3 });
-      box.position.x = 20.0 * Math.random() - 10.0;
+    for (let i = 0; i < 15; ++i) {
+      let box = BABYLON.MeshBuilder.CreateBox("box" + i, { size: 3.5 });
+      box.position.x = 25.0 * Math.random() - 12.5;
       box.position.y = 0.0;
-      box.position.z = 20.0 * Math.random() - 10.0;
+      box.position.z = 25.0 * Math.random() - 12.5;
       box.checkCollisions = true;
       box.material = boxMaterial;
 
@@ -150,6 +150,8 @@ const createCharacter = function (idle, walk, attack, id) {
     newPlayer.idleMesh.setParent(newPlayer.collisionMesh);
     newPlayer.walkMesh.setParent(newPlayer.collisionMesh);
     newPlayer.attackMesh.setParent(newPlayer.collisionMesh);
+
+    newPlayer.agentMesh.isVisible = false;
 
     newPlayer.collisionMesh.isVisible = false;
     newPlayer.collisionMesh.showBoundingBox = true;
