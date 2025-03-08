@@ -10,7 +10,7 @@ let box;
 let is_debugger_showing = false;
 
 
-const playerSpeed = 0.05; 
+const playerSpeed = 1.45; // in meters per second
 let player;
 let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
@@ -314,7 +314,8 @@ const update = function () {
     player.collisionMesh.lookAt(targetPosition);
 
     // Movement code and gravity using built-in collision detection
-    let movementVector = direction.scale(playerSpeed * deltaTime).add(BABYLON.Vector3.Down().scale(0.1));
+    let delta_time_in_seconds = scene.deltaTime / 1000.0;
+    let movementVector = direction.scale(playerSpeed * delta_time_in_seconds).add(BABYLON.Vector3.Down().scale(0.1));
     player.collisionMesh.moveWithCollisions(movementVector);
 };
 
