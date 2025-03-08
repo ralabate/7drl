@@ -9,6 +9,8 @@ let ground;
 
 let merged_mesh_for_nav;
 let navigation_plugin;
+let crowd;
+let pathLine;
 
 let is_debugger_showing = false;
 
@@ -130,8 +132,8 @@ const loadEnvironment = function () {
     groundMaterial.diffuseColor = new BABYLON.Color3(0.19, 0.19, 0.19);
     ground.material = groundMaterial;
 
-    box = BABYLON.MeshBuilder.CreateBox("box1", { size: 2 });
-    box.position = new BABYLON.Vector3(0, 0, 0);
+    box = BABYLON.MeshBuilder.CreateBox("box1", { size: 5 });
+    box.position = new BABYLON.Vector3(0, -1.5, 0);
     const boxMaterial = new BABYLON.StandardMaterial("box1");
     boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.05, 0.05);
     box.material = boxMaterial;
@@ -236,7 +238,7 @@ const start = async function () {
         meshContainers.attack.meshes[0],
     );
 
-    player.collisionMesh.position = new BABYLON.Vector3(-3, 3, 0);
+    player.collisionMesh.position = new BABYLON.Vector3(-0, 1, -6);
     setCharacterState(player, "idle");
 
     let badMeshContainers = await loadBadMeshContainers();
@@ -259,7 +261,23 @@ const start = async function () {
     await Recast();
     navigation_plugin = new BABYLON.RecastJSPlugin();
     loadEnvironment();
-    
+
+    crowd = navigation_plugin.createCrowd(10, 0.1, scene);
+    let i = 0.0;
+    let agentParms = {
+      radius: 0.1,
+      height: 0.2,
+      maxAcceleration: 4.0,
+      maxSpeed: 1.0,
+      collisionQueryRange: 0.5,
+      pathOptimizationRange: 0.0,
+      separationWeight: 1.0,
+    };
+
+    let fred = badguyList[0]; // FRED TEST AGENT #0
+    crowd.addAgent(fred.collisionMesh.position, agentParms, fred.collisionMesh);
+
+
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
         scene.render();
@@ -267,6 +285,23 @@ const start = async function () {
 };
 
 const update = function () {
+
+    // NAV TEST ///////////////////////////////////////////////////////
+
+    let fred = badguyList[0]; // FRED TEST AGENT #0
+    let dest = player.collisionMesh.position;
+    //crowd.agentGoto(0, navigation_plugin.getClosestPoint(dest));
+    fred.collisionMesh.position.x = crowd.getAgentPosition(0).x;
+    fred.collisionMesh.position.y = crowd.getAgentPosition(0).y;
+    fred.collisionMesh.position.z = crowd.getAgentPosition(0).z;
+
+    let pathPoints = navigation_plugin.computePath(crowd.getAgentPosition(0), navigation_plugin.getClosestPoint(dest));
+    console.log(pathPoints);
+    pathLine = BABYLON.MeshBuilder.CreateDashedLines("ribbon", {points: pathPoints, updatable: true, instance: pathLine}, scene);
+
+    // NAV TEST ///////////////////////////////////////////////////////
+    
+    
     direction.normalize();
 
     const deltaTime = scene.getAnimationRatio();
