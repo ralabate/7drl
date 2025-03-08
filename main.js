@@ -149,15 +149,20 @@ const createMovingPlatform = function (x, z, width, height, depth) {
 
 
 const loadEnvironment = function () {
-    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, 10));
+    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(10, 10, 20));
     camera.setTarget(BABYLON.Vector3.Zero());
     camera.attachControl(canvas, true);
 
-    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0));
-    light.intensity = 0.7;
+    const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
+    light.intensity = 1.0;
 
-    ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 10, height: 10 });
+    scene.clearColor = new BABYLON.Color3(0.04, 0.04, 0.04);
+
+    ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 20 });
     ground.checkCollisions = true;
+    const groundMaterial= new BABYLON.StandardMaterial("ground");
+    groundMaterial.diffuseColor = new BABYLON.Color3(0.19, 0.19, 0.19);
+    ground.material = groundMaterial;
 
     box = BABYLON.MeshBuilder.CreateBox("box1", { size: 2 });
     box.position = new BABYLON.Vector3(-3, 1, 0);
