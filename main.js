@@ -113,58 +113,27 @@ const loadBadMeshContainers = async function () {
     return meshContainers;
 }
 
-const createMovingPlatform = function (x, z, width, height, depth) {
-    const animatedBox = BABYLON.MeshBuilder.CreateBox("animatedBox", { width: width, height: height, depth: depth });
-    animatedBox.position = new BABYLON.Vector3(x, 0, z);
-    animatedBox.checkCollisions = true;
-    const animatedBoxMaterial = new BABYLON.StandardMaterial("animatedBox");
-    animatedBoxMaterial.diffuseColor = new BABYLON.Color3(0.05, 0.05, 0.20);
-    animatedBox.material = animatedBoxMaterial;
-
-    const animation = new BABYLON.Animation(
-        "boxAnimation",
-        "position.y",
-        30,
-        BABYLON.Animation.ANIMATIONTYPE_FLOAT,
-        BABYLON.Animation.ANIMATIONLOOPMODE_CYCLE
-    );
-
-    const keys = [
-        { frame: 0, value: animatedBox.position.y - (height * 0.5) },
-        { frame: 150, value: animatedBox.position.y + (height * 0.5) },
-        { frame: 300, value: animatedBox.position.y - (height * 0.5) },
-    ];
-
-    animation.setKeys(keys);
-    animatedBox.animations.push(animation);
-
-    scene.beginAnimation(animatedBox, 0, 300, true);
-}
-
 const loadEnvironment = function () {
-    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(10, 10, 20));
+    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(00, 15, 30));
     camera.setTarget(BABYLON.Vector3.Zero());
-    camera.attachControl(canvas, true);
 
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
     light.intensity = 1.0;
 
     scene.clearColor = new BABYLON.Color3(0.04, 0.04, 0.04);
 
-    ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 20, height: 20 });
+    ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 });
     ground.checkCollisions = true;
     const groundMaterial= new BABYLON.StandardMaterial("ground");
     groundMaterial.diffuseColor = new BABYLON.Color3(0.19, 0.19, 0.19);
     ground.material = groundMaterial;
 
     box = BABYLON.MeshBuilder.CreateBox("box1", { size: 2 });
-    box.position = new BABYLON.Vector3(-3, 1, 0);
+    box.position = new BABYLON.Vector3(0, 0, 0);
     const boxMaterial = new BABYLON.StandardMaterial("box1");
     boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.05, 0.05);
     box.material = boxMaterial;
     box.checkCollisions = true;
-
-    createMovingPlatform(0, 0, 2, 2, 2);
 };
 
 const createCharacter = function (idle, walk, attack) {
@@ -249,8 +218,8 @@ const start = async function () {
             badMeshContainers.attack.meshes[0],
         );
     
-        badguy.collisionMesh.position.x = 5 * Math.sin(i * 6.28/50.0);
-        badguy.collisionMesh.position.z = 5 * Math.cos(i * 6.28/50.0);
+        badguy.collisionMesh.position.x = 12 * Math.sin(i * 6.28/50.0);
+        badguy.collisionMesh.position.z = 12 * Math.cos(i * 6.28/50.0);
         setCharacterState(badguy, "walk");
         badguyList.push(badguy);
     }
