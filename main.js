@@ -106,8 +106,6 @@ const loadBadMeshContainers = async function () {
         attack: createMeshContainer(attackResult),
     };
 
-    meshContainers.
-
     meshContainers.idle.removeAllFromScene();
     meshContainers.walk.removeAllFromScene();
     meshContainers.attack.removeAllFromScene();
@@ -242,23 +240,22 @@ const start = async function () {
     player.collisionMesh.position = new BABYLON.Vector3(-3, 3, 0);
     setCharacterState(player, "idle");
 
-    ncr_import_test();
-
-    /* 
     let badMeshContainers = await loadBadMeshContainers();
     
-    for (let i = 0; i < 5; ++i) {
+    for (let i = 0; i < 50; ++i) {
         let badguy = createCharacter(
             badMeshContainers.idle.meshes[0],
             badMeshContainers.walk.meshes[0],
             badMeshContainers.attack.meshes[0],
         );
     
-        badguy.collisionMesh.position = new BABYLON.Vector3(3, 1, 4 + (i * -2));
+        badguy.collisionMesh.position.x = 5 * Math.sin(i * 6.28/50.0);
+        badguy.collisionMesh.position.z = 5 * Math.cos(i * 6.28/50.0);
         setCharacterState(badguy, "walk");
         badguyList.push(badguy);
     }
-    */
+
+    setCharacterState(badguyList[0], "attack");
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
