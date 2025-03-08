@@ -125,22 +125,24 @@ const loadEnvironment = function () {
 
     navigation_plugin.createNavMesh([merged_mesh_for_nav], navmesh_parameters);
 
-    // debug
+    /*
     let debug = navigation_plugin.createDebugNavMesh(scene);
     debug.position = new BABYLON.Vector3(0.0, 0.1, 0.0);
     let debugMat = new BABYLON.StandardMaterial("debug", scene);
     debugMat.diffuseColor = new BABYLON.Color3(0.1, 0.2, 1.0);
     debugMat.alpha = 0.2;
     debug.material = debugMat;
+    */
 };
 
-const createCharacter = function (idle, walk, attack, id) {
+const createCharacter = function (idle, walk, walkAnimGroup, attack, id) {
     const boundingBox = BABYLON.MeshBuilder.CreateBox("characterBoundingBox", { width: 1, height: 2, depth: 1 });
     boundingBox.position = new BABYLON.Vector3(0, 1, 0);
 
     let newPlayer = {
         idleMesh: idle.clone(),
         walkMesh: walk.clone(),
+        walkAnimGroup: walkAnimGroup.clone(),
         attackMesh: attack.clone(),
         collisionMesh: boundingBox.clone(),
         agentMesh: BABYLON.MeshBuilder.CreateSphere("agentmesh " + id, {diameter: 0.4}),
@@ -206,6 +208,7 @@ const start = async function () {
     player = createCharacter(
         meshContainers.idle.meshes[0],
         meshContainers.walk.meshes[0],
+        meshContainers.walk.animationGroups[0],
         meshContainers.attack.meshes[0],
         0,
     );
@@ -219,17 +222,19 @@ const start = async function () {
         let badguy = createCharacter(
             badMeshContainers.idle.meshes[0],
             badMeshContainers.walk.meshes[0],
+            badMeshContainers.walk.animationGroups[0],
             badMeshContainers.attack.meshes[0],
             i,
         );
     
         badguy.collisionMesh.position.x = 12 * Math.sin(i * 6.28/NUM_BADDIES);
         badguy.collisionMesh.position.z = 12 * Math.cos(i * 6.28/NUM_BADDIES);
-        setCharacterState(badguy, "idle");
+        setCharacterState(badguy, "walk");
+        badguy.walkAnimGroup.pause(true);
+        badguy.walkAnimGroup.goToFrame(Math.random() * 50.0); // <== Doesn't work :(
+        badguy.walkAnimGroup.play(true);
         badguyList.push(badguy);
     }
-
-    setCharacterState(badguyList[0], "walk");
 
     await Recast();
     navigation_plugin = new BABYLON.RecastJSPlugin();
@@ -250,7 +255,6 @@ const start = async function () {
 
     for (let bg of badguyList) {
       let navmesh_valid_startpoint = navigation_plugin.getClosestPoint(bg.collisionMesh.position);  // NB INITIAL PLACEMENT MUST BE NAVMESH-VALID!
-      console.log(navmesh_valid_startpoint);
       crowd.addAgent(navmesh_valid_startpoint, agentParms, bg.agentMesh);
     }
 
