@@ -6,9 +6,11 @@ const scene = new BABYLON.Scene(engine);
 
 let camera;
 let ground; 
-let box;
-let is_debugger_showing = false;
 
+let merged_mesh_for_nav;
+let navigation_plugin;
+
+let is_debugger_showing = false;
 
 const playerSpeed = 1.45; // in meters per second
 let player;
@@ -134,6 +136,34 @@ const loadEnvironment = function () {
     boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.05, 0.05);
     box.material = boxMaterial;
     box.checkCollisions = true;
+
+    merged_mesh_for_nav = BABYLON.Mesh.MergeMeshes([ground, box]);
+
+    let navmesh_parameters = {
+      cs: 0.2,
+      ch: 0.2,
+      walkableSlopeAngle: 90,
+      walkableHeight: 1.0,
+      walkableClimb: 1.0,
+      walkableRadius: 1.0,
+      maxEdgeLen: 12.0,
+      maxSimplificationError: 1.3,
+      minRegionArea: 8.0,
+      mergeRegionArea: 20,
+      maxVertsPerPoly: 6,
+      detailSampleDist: 6,
+      detailSampleMaxError: 1,
+    };
+
+    navigation_plugin.createNavMesh([merged_mesh_for_nav], navmesh_parameters);
+
+    // debug
+    let debug = navigation_plugin.createDebugNavMesh(scene);
+    debug.position = new BABYLON.Vector3(0.0, 0.1, 0.0);
+    let debugMat = new BABYLON.StandardMaterial("debug", scene);
+    debugMat.diffuseColor = new BABYLON.Color3(0.1, 0.2, 1.0);
+    debugMat.alpha = 0.2;
+    debug.material = debugMat;
 };
 
 const createCharacter = function (idle, walk, attack) {
@@ -225,6 +255,10 @@ const start = async function () {
     }
 
     setCharacterState(badguyList[0], "attack");
+
+    await Recast();
+    navigation_plugin = new BABYLON.RecastJSPlugin();
+    loadEnvironment();
     
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -342,8 +376,6 @@ const handleInput = function (kbInfo) {
 window.addEventListener("resize", function () {
     engine.resize();
 });
-
-loadEnvironment();
 
 scene.onKeyboardObservable.add(handleInput);
 scene.onBeforeRenderObservable.add(update);
