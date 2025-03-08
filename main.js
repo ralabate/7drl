@@ -14,7 +14,7 @@ let pathLine;
 
 let is_debugger_showing = false;
 
-const playerSpeed = 1.45; // in meters per second
+const playerSpeed = 5 * 1.45; // in meters per second
 let player;
 let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
@@ -23,6 +23,7 @@ let canSpawnBullet = true;
 const bulletSpeed = 6.10; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
+const NUM_BADDIES = 50;
 const badguySpeed = 0.3; // in meters per second
 let bulletList = [];
 let badguyList = [];
@@ -88,14 +89,23 @@ const loadEnvironment = function () {
     groundMaterial.diffuseColor = new BABYLON.Color3(0.19, 0.19, 0.19);
     ground.material = groundMaterial;
 
-    box = BABYLON.MeshBuilder.CreateBox("box1", { size: 3 });
-    box.position = new BABYLON.Vector3(3, 0, -3);
-    const boxMaterial = new BABYLON.StandardMaterial("box1");
+    const boxMaterial = new BABYLON.StandardMaterial("boxMaterial");
     boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.05, 0.05);
-    box.material = boxMaterial;
-    box.checkCollisions = true;
 
-    merged_mesh_for_nav = BABYLON.Mesh.MergeMeshes([ground, box]);
+    let mesh_list = [];
+    for (let i = 0; i < 20; ++i) {
+      let box = BABYLON.MeshBuilder.CreateBox("box" + i, { size: 3 });
+      box.position.x = 20.0 * Math.random() - 10.0;
+      box.position.y = 0.0;
+      box.position.z = 20.0 * Math.random() - 10.0;
+      box.checkCollisions = true;
+      box.material = boxMaterial;
+
+      mesh_list.push(box);      
+    }
+
+    mesh_list.push(ground);
+    merged_mesh_for_nav = BABYLON.Mesh.MergeMeshes(mesh_list);
 
     let navmesh_parameters = {
       cs: 0.2,
@@ -124,7 +134,7 @@ const loadEnvironment = function () {
     debug.material = debugMat;
 };
 
-const createCharacter = function (idle, walk, attack) {
+const createCharacter = function (idle, walk, attack, id) {
     const boundingBox = BABYLON.MeshBuilder.CreateBox("characterBoundingBox", { width: 1, height: 2, depth: 1 });
     boundingBox.position = new BABYLON.Vector3(0, 1, 0);
 
@@ -133,7 +143,8 @@ const createCharacter = function (idle, walk, attack) {
         walkMesh: walk.clone(),
         attackMesh: attack.clone(),
         collisionMesh: boundingBox.clone(),
-        agentMesh: BABYLON.MeshBuilder.CreateSphere("", {diameter: 0.4}),
+        agentMesh: BABYLON.MeshBuilder.CreateSphere("agentmesh " + id, {diameter: 0.4}),
+        id: id,
     };
 
     newPlayer.idleMesh.setParent(newPlayer.collisionMesh);
@@ -144,14 +155,13 @@ const createCharacter = function (idle, walk, attack) {
     newPlayer.collisionMesh.showBoundingBox = true;
     newPlayer.collisionMesh.checkCollisions = true;
 
-    //newPlayer.agentMesh.isVisible = false;
-
     boundingBox.dispose();
     
     return newPlayer;
 };
 
 const destroyCharacter = function (character) {
+    crowd.removeAgent(character.id);
     character.collisionMesh.dispose();
 };
 
@@ -195,6 +205,7 @@ const start = async function () {
         meshContainers.idle.meshes[0],
         meshContainers.walk.meshes[0],
         meshContainers.attack.meshes[0],
+        0,
     );
 
     player.collisionMesh.position = new BABYLON.Vector3(2, 1, -6);
@@ -202,15 +213,16 @@ const start = async function () {
 
     let badMeshContainers = await loadBadMeshContainers();
     
-    for (let i = 0; i < 50; ++i) {
+    for (let i = 0; i < NUM_BADDIES; ++i) {
         let badguy = createCharacter(
             badMeshContainers.idle.meshes[0],
             badMeshContainers.walk.meshes[0],
             badMeshContainers.attack.meshes[0],
+            i,
         );
     
-        badguy.collisionMesh.position.x = 12 * Math.sin(i * 6.28/50.0);
-        badguy.collisionMesh.position.z = 12 * Math.cos(i * 6.28/50.0);
+        badguy.collisionMesh.position.x = 12 * Math.sin(i * 6.28/NUM_BADDIES);
+        badguy.collisionMesh.position.z = 12 * Math.cos(i * 6.28/NUM_BADDIES);
         setCharacterState(badguy, "idle");
         badguyList.push(badguy);
     }
@@ -222,7 +234,7 @@ const start = async function () {
 
     loadEnvironment();
 
-    crowd = navigation_plugin.createCrowd(1, 0.1, scene);
+    crowd = navigation_plugin.createCrowd(NUM_BADDIES, 0.1, scene);
 
     let agentParms = {
       radius: 0.4,
@@ -234,7 +246,11 @@ const start = async function () {
       separationWeight: 1.0,
     };
 
-    crowd.addAgent(navigation_plugin.getRandomPointAround(BABYLON.Vector3.Zero()), agentParms, badguyList[0].agentMesh);
+    for (let bg of badguyList) {
+      let navmesh_valid_startpoint = navigation_plugin.getClosestPoint(bg.collisionMesh.position);  // NB INITIAL PLACEMENT MUST BE NAVMESH-VALID!
+      console.log(navmesh_valid_startpoint);
+      crowd.addAgent(navmesh_valid_startpoint, agentParms, bg.agentMesh);
+    }
 
     // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
@@ -250,11 +266,13 @@ const update = function () {
 
     // Update bad guys
     let dest = player.collisionMesh.position;
-    crowd.agentGoto(0, navigation_plugin.getClosestPoint(dest));
-    badguyList[0].collisionMesh.position.x = badguyList[0].agentMesh.position.x; 
-    badguyList[0].collisionMesh.position.z = badguyList[0].agentMesh.position.z; 
+    for (let bg of badguyList) {
+      crowd.agentGoto(bg.id, navigation_plugin.getClosestPoint(dest));
+      bg.collisionMesh.position.x = bg.agentMesh.position.x; 
+      bg.collisionMesh.position.z = bg.agentMesh.position.z; 
+    }
 
-    let pathPoints = navigation_plugin.computePath(crowd.getAgentPosition(0), navigation_plugin.getClosestPoint(dest));
+    let pathPoints = navigation_plugin.computePath(crowd.getAgentPosition(3), navigation_plugin.getClosestPoint(dest));
     pathLine = BABYLON.MeshBuilder.CreateDashedLines("ribbon", {points: pathPoints, updatable: true, instance: pathLine}, scene);
     
     // Update bullets
