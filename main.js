@@ -25,10 +25,14 @@ let canSpawnBullet = true;
 const bulletSpeed = 5.5; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
-const NUM_BADDIES = 30;
+const MAXIMUM_BADDIES = 40;
 const badguySpeed = 0.7; // in meters per second
+let badMeshContainers;
 let bulletList = [];
 let badguyList = [];
+
+const SPAWN_RATE = 1.4; // in seconds
+let spawnerList = [];
 
 const createMeshContainer = function (result) {
     const meshContainer = new BABYLON.AssetContainer(scene);
@@ -127,13 +131,15 @@ const createCharacter = function (idle, walk, walkAnimGroup, attack, id) {
     const boundingBox = BABYLON.MeshBuilder.CreateBox("characterBoundingBox", { width: 1, height: 2, depth: 1 });
     boundingBox.position = new BABYLON.Vector3(0, 1, 0);
 
+    const sphere = BABYLON.MeshBuilder.CreateSphere("agentmesh " + id, {diameter: 0.4});
+
     let newPlayer = {
         idleMesh: idle.clone(),
         walkMesh: walk.clone(),
         walkAnimGroup: walkAnimGroup.clone(),
         attackMesh: attack.clone(),
         collisionMesh: boundingBox.clone(),
-        agentMesh: BABYLON.MeshBuilder.CreateSphere("agentmesh " + id, {diameter: 0.4}),
+        agentMesh: sphere.clone(),
         id: id,
     };
 
@@ -141,13 +147,14 @@ const createCharacter = function (idle, walk, walkAnimGroup, attack, id) {
     newPlayer.walkMesh.setParent(newPlayer.collisionMesh);
     newPlayer.attackMesh.setParent(newPlayer.collisionMesh);
 
-    newPlayer.agentMesh.isVisible = false;
+    newPlayer.agentMesh.isVisible = true; //false;
 
     newPlayer.collisionMesh.isVisible = false;
     newPlayer.collisionMesh.showBoundingBox = true;
     newPlayer.collisionMesh.checkCollisions = true;
 
     boundingBox.dispose();
+    sphere.dispose();
     
     return newPlayer;
 };
@@ -155,6 +162,7 @@ const createCharacter = function (idle, walk, walkAnimGroup, attack, id) {
 const destroyCharacter = function (character) {
     crowd.removeAgent(character.id);
     character.collisionMesh.dispose();
+    character.agentMesh.dispose();
 };
 
 const setCharacterState = function (character, state) {
@@ -197,8 +205,8 @@ function spawnBullet(origin) {
     const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.05 + width_jitter, height: 0.05 + height_jitter, depth: 0.15 + depth_jitter });
 
     bullet.position = origin.position.clone();
-    bullet.position.y += 0.10 + y_jitter;
     bullet.position.x += 0.55 + x_jitter;
+    bullet.position.y += 0.10 + y_jitter;
 
     bullet.lookAt(bullet.position.add(origin.forward.add(lookat_jitter)));
 
@@ -206,6 +214,48 @@ function spawnBullet(origin) {
     bullet.material.diffuseColor = new BABYLON.Color3(1.0 + r_jitter, 1.0 + g_jitter, 0.3 + b_jitter);
 
     bulletList.push(bullet);
+}
+
+function spawnBadGuy(spawn_x, spawn_z) {
+    if (badguyList.length == MAXIMUM_BADDIES) {
+        console.log("REACHED MAXIMUM BADDIES");
+        return;
+    }
+
+    let badguy = createCharacter(
+        badMeshContainers.idle.meshes[0],
+        badMeshContainers.walk.meshes[0],
+        badMeshContainers.walk.animationGroups[0],
+        badMeshContainers.attack.meshes[0],
+        -1,
+    );
+
+    badguy.collisionMesh.checkCollisions = false;
+    setCharacterState(badguy, "idle");
+
+    let agentParms = {
+      radius: 0.4,
+      height: 0.4,
+      maxAcceleration: 4.0,
+      maxSpeed: badguySpeed,
+      collisionQueryRange: 0.5,
+      pathOptimizationRange: 0.0,
+      separationWeight: 0.0,
+    };
+
+    let spawn_point = new BABYLON.Vector3(spawn_x, 0.0, spawn_z);
+    let navmesh_valid_startpoint = navigation_plugin.getClosestPoint(spawn_point);  // NB INITIAL PLACEMENT MUST BE NAVMESH-VALID!
+    let crowd_id = crowd.addAgent(navmesh_valid_startpoint, agentParms, badguy.agentMesh);
+
+    if (crowd_id != -1) {
+        badguy.id = crowd_id;
+        badguyList.push(badguy);
+    }
+
+    let dest = player.collisionMesh.position;
+    crowd.agentGoto(badguy.id, navigation_plugin.getClosestPoint(dest));
+    badguy.collisionMesh.position.x = badguy.agentMesh.position.x; 
+    badguy.collisionMesh.position.z = badguy.agentMesh.position.z; 
 }
 
 const start = async function () {
@@ -219,51 +269,25 @@ const start = async function () {
         0,
     );
 
+    player.agentMesh.dispose();
+
     player.collisionMesh.position = new BABYLON.Vector3(2, 1, -6);
     setCharacterState(player, "idle");
 
-    let badMeshContainers = await loadBadMeshContainers();
-    
-    for (let i = 0; i < NUM_BADDIES; ++i) {
-        let badguy = createCharacter(
-            badMeshContainers.idle.meshes[0],
-            badMeshContainers.walk.meshes[0],
-            badMeshContainers.walk.animationGroups[0],
-            badMeshContainers.attack.meshes[0],
-            i,
-        );
-    
-        badguy.collisionMesh.position.x = 12 * Math.sin(i * 6.28/NUM_BADDIES);
-        badguy.collisionMesh.position.z = 12 * Math.cos(i * 6.28/NUM_BADDIES);
-        badguy.collisionMesh.checkCollisions = false;
-        setCharacterState(badguy, "idle");
-        badguy.walkAnimGroup.pause(true);
-        badguy.walkAnimGroup.goToFrame(Math.random() * 50.0); // <== Doesn't work :(
-        badguy.walkAnimGroup.play(true);
-        badguyList.push(badguy);
-    }
+    badMeshContainers = await loadBadMeshContainers(); // used later by spawner
+
+    spawnerList.push({timer:SPAWN_RATE, x:+12.0, z:+12.0});
+    spawnerList.push({timer:SPAWN_RATE, x:+12.0, z:-12.0});
+    spawnerList.push({timer:SPAWN_RATE, x:-12.0, z:+12.0});
+    spawnerList.push({timer:SPAWN_RATE, x:-12.0, z:-12.0});
+    spawnerList.push({timer:SPAWN_RATE, x:0.0, z:+0.0});
 
     await Recast();
     navigation_plugin = new BABYLON.RecastJSPlugin();
 
     loadEnvironment();
 
-    crowd = navigation_plugin.createCrowd(NUM_BADDIES, 0.1, scene);
-
-    let agentParms = {
-      radius: 0.4,
-      height: 0.4,
-      maxAcceleration: 4.0,
-      maxSpeed: badguySpeed,
-      collisionQueryRange: 0.5,
-      pathOptimizationRange: 0.0,
-      separationWeight: 0.0,
-    };
-
-    for (let bg of badguyList) {
-      let navmesh_valid_startpoint = navigation_plugin.getClosestPoint(bg.collisionMesh.position);  // NB INITIAL PLACEMENT MUST BE NAVMESH-VALID!
-      crowd.addAgent(navmesh_valid_startpoint, agentParms, bg.agentMesh);
-    }
+    crowd = navigation_plugin.createCrowd(MAXIMUM_BADDIES, 0.1, scene);
 
     engine.runRenderLoop(function () {
         scene.render();
@@ -274,6 +298,16 @@ const update = function () {
     direction.normalize();
 
     const deltaTime = scene.getAnimationRatio();
+
+    // Update spawners
+    for (let s of spawnerList) {
+      let delta_time_in_seconds = scene.deltaTime / 1000.0;
+      s.timer -= delta_time_in_seconds;
+      if (s.timer < 0) {
+        s.timer = SPAWN_RATE;
+        spawnBadGuy(s.x, s.z);
+      }   
+    }
 
     // Update bad guys
     let dest = player.collisionMesh.position;
@@ -298,7 +332,7 @@ const update = function () {
         bullet.position.addInPlace(bullet.forward.scale(bulletSpeed * delta_time_in_seconds));
       
         for (let badguy of badguyList) {
-            if (bullet.intersectsMesh(badguy.collisionMesh, true)) {
+            if (badguy.collisionMesh.intersectsPoint(bullet.position)) {
                 dead_badguys.push(badguy);
                 dead_bullets.push(bullet);
                 destroyCharacter(badguy);
