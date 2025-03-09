@@ -24,8 +24,8 @@ let canSpawnBullet = true;
 const bulletSpeed = 10.0; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
-const NUM_BADDIES = 50;
-const badguySpeed = 0.3; // in meters per second
+const NUM_BADDIES = 100;
+const badguySpeed = 0.5; // in meters per second
 let bulletList = [];
 let badguyList = [];
 let badguy_destruction_ps;
@@ -240,14 +240,32 @@ const setCharacterState = function (character, state) {
 };
 
 function spawnBullet(origin) {
-    const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.05, height: 0.05, depth: 0.15 });
+    let width_jitter = -0.01 + 0.02 * Math.random();
+    let height_jitter = -0.01 + 0.02 * Math.random();
+    let depth_jitter = -0.03 + 0.06 * Math.random();
+
+    let y_jitter = -0.10 + 0.20 * Math.random();
+    let x_jitter = -0.10 + 0.20 * Math.random();
+
+    let r_jitter = 0.10 * Math.random();
+    let g_jitter = 0.10 * Math.random();
+    let b_jitter = -0.10 + 0.20 * Math.random();
+
+    let lookat_jitter = new BABYLON.Vector3();
+    lookat_jitter.x = -0.05 + 0.10 * Math.random();
+    lookat_jitter.y = -0.02 + 0.04 * Math.random();
+    lookat_jitter.z = -0.05 + 0.10 * Math.random();
+
+    const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.05 + width_jitter, height: 0.05 + height_jitter, depth: 0.15 + depth_jitter });
+
     bullet.position = origin.position.clone();
-    bullet.position.y += 0.10;
-    bullet.position.x += 0.55;
-    bullet.lookAt(bullet.position.add(origin.forward));
+    bullet.position.y += 0.10 + y_jitter;
+    bullet.position.x += 0.55 + x_jitter;
+
+    bullet.lookAt(bullet.position.add(origin.forward.add(lookat_jitter)));
 
     bullet.material = bulletMaterial;
-    bullet.material.diffuseColor = new BABYLON.Color3(1.0, 1.0, 0.3);
+    bullet.material.diffuseColor = new BABYLON.Color3(1.0 + r_jitter, 1.0 + g_jitter, 0.3 + b_jitter);
 
     bulletList.push(bullet);
 }
@@ -300,11 +318,12 @@ const start = async function () {
       maxSpeed: badguySpeed,
       collisionQueryRange: 0.5,
       pathOptimizationRange: 0.0,
-      separationWeight: 1.0,
+      separationWeight: 8.0,
     };
 
     for (let bg of badguyList) {
       let navmesh_valid_startpoint = navigation_plugin.getClosestPoint(bg.collisionMesh.position);  // NB INITIAL PLACEMENT MUST BE NAVMESH-VALID!
+      agentParms.maxSpeed += -0.1 + 0.2 * Math.random();
       crowd.addAgent(navmesh_valid_startpoint, agentParms, bg.agentMesh);
     }
 
@@ -363,7 +382,6 @@ const update = function () {
         }
     }
 
-
     // Remove dead bullets and badguys.
     for (let bullet of dead_bullets) {
         const index = bulletList.indexOf(bullet);
@@ -415,7 +433,7 @@ const handleInput = function (kbInfo) {
 
             setTimeout(() => {
                 canSpawnBullet = true;
-            }, 250);
+            }, 100);
         }
     }
     else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) {
