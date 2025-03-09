@@ -321,18 +321,18 @@ const update = function () {
     const deltaTime = scene.getAnimationRatio();
 
     // Update bad guys
-    //
     let dest = player.collisionMesh.position;
-
     for (let bg of badguyList) {
       crowd.agentGoto(bg.id, navigation_plugin.getClosestPoint(dest));
       bg.collisionMesh.position.x = bg.agentMesh.position.x; 
       bg.collisionMesh.position.z = bg.agentMesh.position.z; 
     }
 
+    /*
     let idx = crowd.getAgents()[0]; // <== seems to not always work
     let pathPoints = navigation_plugin.computePath(crowd.getAgentPosition(idx), navigation_plugin.getClosestPoint(dest));
     pathLine = BABYLON.MeshBuilder.CreateDashedLines("ribbon", {points: pathPoints, updatable: true, instance: pathLine}, scene);
+    */
     
     // Update bullets
     let dead_bullets = [];
