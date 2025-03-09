@@ -341,7 +341,7 @@ const update = function () {
 
         let delta_time_in_seconds = scene.deltaTime / 1000.0;
         bullet.position.addInPlace(bullet.forward.scale(bulletSpeed * delta_time_in_seconds));
-
+      
         for (let badguy of badguyList) {
             if (bullet.intersectsMesh(badguy.collisionMesh, true)) {
                 console.log("Bullet collided with badguy!");
@@ -352,7 +352,17 @@ const update = function () {
                 break;
             }
         }
+
     }
+
+    let furthest = 15;
+    for (let bullet of bulletList) {
+        if (bullet.position.x > furthest || bullet.position.x < -furthest || bullet.position.z > furthest || bullet.position.z < -furthest) {
+          dead_bullets.push(bullet);          
+          bullet.dispose();
+        }
+    }
+
 
     // Remove dead bullets and badguys.
     for (let bullet of dead_bullets) {
