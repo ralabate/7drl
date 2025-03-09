@@ -116,8 +116,8 @@ const loadEnvironment = function () {
     starfield_ps = new BABYLON.ParticleSystem("starfield", 10000);
     starfield_ps.emitter = new BABYLON.Vector3(0, 0, -20);
     starfield_ps.emitRate = 1000;
-    starfield_ps.minLifeTime = 30.0;
-    starfield_ps.maxLifeTime = 300.0;
+    starfield_ps.minLifeTime = 10.0;
+    starfield_ps.maxLifeTime = 20.0;
     starfield_ps.createBoxEmitter(new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(-40, -40, 0), new BABYLON.Vector3(40, 40, ));
     starfield_ps.minEmitPower = 0.0;
     starfield_ps.maxEmitPower = 0.0; // end emit
