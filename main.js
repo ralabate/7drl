@@ -5,8 +5,9 @@ const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engi
 const scene = new BABYLON.Scene(engine);
 
 let camera;
-let ground; 
+let badguy_destruction_ps;
 
+let ground; 
 let merged_mesh_for_nav;
 let navigation_plugin;
 let crowd;
@@ -14,13 +15,13 @@ let pathLine;
 
 let is_debugger_showing = false;
 
-const playerSpeed = 5 * 1.45; // in meters per second
+const playerSpeed = 3 * 1.45; // in meters per second
 let player;
 let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
 let canSpawnBullet = true;
 
-const bulletSpeed = 6.10; // in meters per second
+const bulletSpeed = 10.0; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
 const NUM_BADDIES = 50;
@@ -81,16 +82,38 @@ const loadEnvironment = function () {
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
     light.intensity = 1.0;
 
+    badguy_destruction_ps = new BABYLON.ParticleSystem("badguyExplosion", 1000);
+    badguy_destruction_ps.emitter = new BABYLON.Vector3(0, 0, 0);
+    badguy_destruction_ps.manualEmitCount = 0;
+    badguy_destruction_ps.minLifeTime = 0.00;
+    badguy_destruction_ps.maxLifeTime = 0.15;
+    badguy_destruction_ps.createPointEmitter(new BABYLON.Vector3(-1, -1, -1), new BABYLON.Vector3(1, 1, 1));
+    badguy_destruction_ps.minEmitPower = 5.0;
+    badguy_destruction_ps.maxEmitPower = 9.0; // end emit
+
+    badguy_destruction_ps.gravity = new BABYLON.Vector3(0, -40, 0);
+    badguy_destruction_ps.addDragGradient(0, 0.0);
+    badguy_destruction_ps.addDragGradient(1, 0.4); // end forces
+
+    badguy_destruction_ps.minSize = 0.00;
+    badguy_destruction_ps.maxSize = 0.06;
+    badguy_destruction_ps.particleTexture = new BABYLON.Texture("https://ralabate.github.io/7drl/solid_white_texture_64x64.png");
+    badguy_destruction_ps.color1 = new BABYLON.Color4(1, 1, 1, 1);
+    badguy_destruction_ps.color2 = new BABYLON.Color4(1, 1, 0, 1);
+    badguy_destruction_ps.colorDead = new BABYLON.Color4(0, 0, 0, 0); // end render
+  
+    badguy_destruction_ps.start();
+
     scene.clearColor = new BABYLON.Color3(0.04, 0.04, 0.04);
 
     ground = BABYLON.MeshBuilder.CreateGround("ground", { width: 30, height: 30 });
     ground.checkCollisions = true;
     const groundMaterial= new BABYLON.StandardMaterial("ground");
-    groundMaterial.diffuseColor = new BABYLON.Color3(0.19, 0.19, 0.19);
+    groundMaterial.diffuseColor = new BABYLON.Color3(0.10, 0.10, 0.10);
     ground.material = groundMaterial;
 
     const boxMaterial = new BABYLON.StandardMaterial("boxMaterial");
-    boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.05, 0.05);
+    boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.17, 0.18);
 
     let mesh_list = [];
     for (let i = 0; i < 15; ++i) {
@@ -105,7 +128,7 @@ const loadEnvironment = function () {
     }
 
     mesh_list.push(ground);
-    merged_mesh_for_nav = BABYLON.Mesh.MergeMeshes(mesh_list);
+    merged_mesh_for_nav = BABYLON.Mesh.MergeMeshes(mesh_list); // <== overwrites box material with ground material
 
     let navmesh_parameters = {
       cs: 0.2,
@@ -165,6 +188,9 @@ const createCharacter = function (idle, walk, walkAnimGroup, attack, id) {
 };
 
 const destroyCharacter = function (character) {
+    badguy_destruction_ps.emitter = character.collisionMesh.position;
+    badguy_destruction_ps.manualEmitCount = 50 + Math.random() * 200;
+
     crowd.removeAgent(character.id);
     character.collisionMesh.dispose();
 };
@@ -229,7 +255,7 @@ const start = async function () {
     
         badguy.collisionMesh.position.x = 12 * Math.sin(i * 6.28/NUM_BADDIES);
         badguy.collisionMesh.position.z = 12 * Math.cos(i * 6.28/NUM_BADDIES);
-        setCharacterState(badguy, "walk");
+        setCharacterState(badguy, "idle");
         badguy.walkAnimGroup.pause(true);
         badguy.walkAnimGroup.goToFrame(Math.random() * 50.0); // <== Doesn't work :(
         badguy.walkAnimGroup.play(true);
@@ -271,14 +297,16 @@ const update = function () {
     const deltaTime = scene.getAnimationRatio();
 
     // Update bad guys
+    //
     let dest = player.collisionMesh.position;
+
     for (let bg of badguyList) {
       crowd.agentGoto(bg.id, navigation_plugin.getClosestPoint(dest));
       bg.collisionMesh.position.x = bg.agentMesh.position.x; 
       bg.collisionMesh.position.z = bg.agentMesh.position.z; 
     }
 
-    let idx = crowd.getAgents()[0];
+    let idx = crowd.getAgents()[0]; // <== seems to not always work
     let pathPoints = navigation_plugin.computePath(crowd.getAgentPosition(idx), navigation_plugin.getClosestPoint(dest));
     pathLine = BABYLON.MeshBuilder.CreateDashedLines("ribbon", {points: pathPoints, updatable: true, instance: pathLine}, scene);
     
