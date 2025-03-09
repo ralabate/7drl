@@ -5,9 +5,9 @@ const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engi
 const scene = new BABYLON.Scene(engine);
 
 let camera;
-let badguy_destruction_ps;
 
 let ground; 
+let starfield_ps;
 let merged_mesh_for_nav;
 let navigation_plugin;
 let crowd;
@@ -28,6 +28,7 @@ const NUM_BADDIES = 50;
 const badguySpeed = 0.3; // in meters per second
 let bulletList = [];
 let badguyList = [];
+let badguy_destruction_ps;
 
 const createMeshContainer = function (result) {
     const meshContainer = new BABYLON.AssetContainer(scene);
@@ -82,7 +83,7 @@ const loadEnvironment = function () {
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
     light.intensity = 1.0;
 
-    badguy_destruction_ps = new BABYLON.ParticleSystem("badguyExplosion", 1000);
+    badguy_destruction_ps = new BABYLON.ParticleSystem("badguyExplosion", 5000);
     badguy_destruction_ps.emitter = new BABYLON.Vector3(0, 0, 0);
     badguy_destruction_ps.manualEmitCount = 0;
     badguy_destruction_ps.minLifeTime = 0.00;
@@ -111,6 +112,29 @@ const loadEnvironment = function () {
     const groundMaterial= new BABYLON.StandardMaterial("ground");
     groundMaterial.diffuseColor = new BABYLON.Color3(0.10, 0.10, 0.10);
     ground.material = groundMaterial;
+
+    starfield_ps = new BABYLON.ParticleSystem("starfield", 10000);
+    starfield_ps.emitter = new BABYLON.Vector3(0, 0, -20);
+    starfield_ps.emitRate = 1000;
+    starfield_ps.minLifeTime = 30.0;
+    starfield_ps.maxLifeTime = 300.0;
+    starfield_ps.createBoxEmitter(new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(-40, -40, 0), new BABYLON.Vector3(40, 40, ));
+    starfield_ps.minEmitPower = 0.0;
+    starfield_ps.maxEmitPower = 0.0; // end emit
+
+    starfield_ps.gravity = new BABYLON.Vector3(0, -0.1, 0);
+    starfield_ps.addDragGradient(0, 0.1);
+    starfield_ps.addDragGradient(1, 0.8); // end forces
+
+    starfield_ps.minSize = 0.01;
+    starfield_ps.maxSize = 0.06;
+    starfield_ps.particleTexture = new BABYLON.Texture("https://ralabate.github.io/7drl/solid_white_texture_64x64.png");
+    starfield_ps.color1 = new BABYLON.Color4(1, 1, 1, 1);
+    starfield_ps.color2 = new BABYLON.Color4(1, 1, 1, 1);
+    starfield_ps.colorDead = new BABYLON.Color4(0, 0, 0, 0); // end render
+  
+    starfield_ps.preWarmCycles = 600;
+    starfield_ps.start();
 
     const boxMaterial = new BABYLON.StandardMaterial("boxMaterial");
     boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.17, 0.18);
