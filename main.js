@@ -26,7 +26,7 @@ const bulletSpeed = 5.5; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
 const NUM_BADDIES = 30;
-const badguySpeed = 0.1; // in meters per second
+const badguySpeed = 0.7; // in meters per second
 let bulletList = [];
 let badguyList = [];
 
@@ -77,8 +77,7 @@ const loadBadMeshContainers = async function () {
 }
 
 const loadEnvironment = function () {
-    //camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(00, 15, 30));
-    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(00, 05, 10));
+    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(00, 15, 30));
     camera.setTarget(BABYLON.Vector3.Zero());
 
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
