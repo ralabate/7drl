@@ -1,5 +1,7 @@
 /// <reference path="babylon.d.ts" />
 
+let kbarray = [];
+
 const canvas = document.getElementById("renderCanvas"); // Get the canvas element
 const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 const scene = new BABYLON.Scene(engine);
@@ -7,7 +9,6 @@ const scene = new BABYLON.Scene(engine);
 let camera;
 
 let ground; 
-let starfield_ps;
 let merged_mesh_for_nav;
 let navigation_plugin;
 let crowd;
@@ -15,20 +16,19 @@ let pathLine;
 
 let is_debugger_showing = false;
 
-const playerSpeed = 3 * 1.45; // in meters per second
+const playerSpeed = 2 + 1.45; // in meters per second
 let player;
 let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
 let canSpawnBullet = true;
 
-const bulletSpeed = 10.0; // in meters per second
+const bulletSpeed = 5.5; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
-const NUM_BADDIES = 100;
-const badguySpeed = 0.5; // in meters per second
+const NUM_BADDIES = 30;
+const badguySpeed = 0.1; // in meters per second
 let bulletList = [];
 let badguyList = [];
-let badguy_destruction_ps;
 
 const createMeshContainer = function (result) {
     const meshContainer = new BABYLON.AssetContainer(scene);
@@ -77,33 +77,12 @@ const loadBadMeshContainers = async function () {
 }
 
 const loadEnvironment = function () {
-    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(00, 15, 30));
+    //camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(00, 15, 30));
+    camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(00, 05, 10));
     camera.setTarget(BABYLON.Vector3.Zero());
 
     const light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(1, 1, 0));
     light.intensity = 1.0;
-
-    badguy_destruction_ps = new BABYLON.ParticleSystem("badguyExplosion", 5000);
-    badguy_destruction_ps.emitter = new BABYLON.Vector3(0, 0, 0);
-    badguy_destruction_ps.manualEmitCount = 0;
-    badguy_destruction_ps.minLifeTime = 0.00;
-    badguy_destruction_ps.maxLifeTime = 0.15;
-    badguy_destruction_ps.createPointEmitter(new BABYLON.Vector3(-1, -1, -1), new BABYLON.Vector3(1, 1, 1));
-    badguy_destruction_ps.minEmitPower = 5.0;
-    badguy_destruction_ps.maxEmitPower = 9.0; // end emit
-
-    badguy_destruction_ps.gravity = new BABYLON.Vector3(0, -40, 0);
-    badguy_destruction_ps.addDragGradient(0, 0.0);
-    badguy_destruction_ps.addDragGradient(1, 0.4); // end forces
-
-    badguy_destruction_ps.minSize = 0.00;
-    badguy_destruction_ps.maxSize = 0.06;
-    badguy_destruction_ps.particleTexture = new BABYLON.Texture("https://ralabate.github.io/7drl/solid_white_texture_64x64.png");
-    badguy_destruction_ps.color1 = new BABYLON.Color4(1, 1, 1, 1);
-    badguy_destruction_ps.color2 = new BABYLON.Color4(1, 1, 0, 1);
-    badguy_destruction_ps.colorDead = new BABYLON.Color4(0, 0, 0, 0); // end render
-  
-    badguy_destruction_ps.start();
 
     scene.clearColor = new BABYLON.Color3(0.04, 0.04, 0.04);
 
@@ -113,44 +92,7 @@ const loadEnvironment = function () {
     groundMaterial.diffuseColor = new BABYLON.Color3(0.10, 0.10, 0.10);
     ground.material = groundMaterial;
 
-    starfield_ps = new BABYLON.ParticleSystem("starfield", 10000);
-    starfield_ps.emitter = new BABYLON.Vector3(0, 0, -20);
-    starfield_ps.emitRate = 1000;
-    starfield_ps.minLifeTime = 10.0;
-    starfield_ps.maxLifeTime = 20.0;
-    starfield_ps.createBoxEmitter(new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(0, 0, 0), new BABYLON.Vector3(-40, -40, 0), new BABYLON.Vector3(40, 40, ));
-    starfield_ps.minEmitPower = 0.0;
-    starfield_ps.maxEmitPower = 0.0; // end emit
-
-    starfield_ps.gravity = new BABYLON.Vector3(0, -0.1, 0);
-    starfield_ps.addDragGradient(0, 0.1);
-    starfield_ps.addDragGradient(1, 0.8); // end forces
-
-    starfield_ps.minSize = 0.01;
-    starfield_ps.maxSize = 0.06;
-    starfield_ps.particleTexture = new BABYLON.Texture("https://ralabate.github.io/7drl/solid_white_texture_64x64.png");
-    starfield_ps.color1 = new BABYLON.Color4(1, 1, 1, 1);
-    starfield_ps.color2 = new BABYLON.Color4(1, 1, 1, 1);
-    starfield_ps.colorDead = new BABYLON.Color4(0, 0, 0, 0); // end render
-  
-    starfield_ps.preWarmCycles = 600;
-    starfield_ps.start();
-
-    const boxMaterial = new BABYLON.StandardMaterial("boxMaterial");
-    boxMaterial.diffuseColor = new BABYLON.Color3(0.20, 0.17, 0.18);
-
     let mesh_list = [];
-    for (let i = 0; i < 15; ++i) {
-      let box = BABYLON.MeshBuilder.CreateBox("box" + i, { size: 3.5 });
-      box.position.x = 25.0 * Math.random() - 12.5;
-      box.position.y = 0.0;
-      box.position.z = 25.0 * Math.random() - 12.5;
-      box.checkCollisions = true;
-      box.material = boxMaterial;
-
-      mesh_list.push(box);      
-    }
-
     mesh_list.push(ground);
     merged_mesh_for_nav = BABYLON.Mesh.MergeMeshes(mesh_list); // <== overwrites box material with ground material
 
@@ -212,9 +154,6 @@ const createCharacter = function (idle, walk, walkAnimGroup, attack, id) {
 };
 
 const destroyCharacter = function (character) {
-    badguy_destruction_ps.emitter = character.collisionMesh.position;
-    badguy_destruction_ps.manualEmitCount = 50 + Math.random() * 200;
-
     crowd.removeAgent(character.id);
     character.collisionMesh.dispose();
 };
@@ -297,6 +236,7 @@ const start = async function () {
     
         badguy.collisionMesh.position.x = 12 * Math.sin(i * 6.28/NUM_BADDIES);
         badguy.collisionMesh.position.z = 12 * Math.cos(i * 6.28/NUM_BADDIES);
+        badguy.collisionMesh.checkCollisions = false;
         setCharacterState(badguy, "idle");
         badguy.walkAnimGroup.pause(true);
         badguy.walkAnimGroup.goToFrame(Math.random() * 50.0); // <== Doesn't work :(
@@ -318,23 +258,20 @@ const start = async function () {
       maxSpeed: badguySpeed,
       collisionQueryRange: 0.5,
       pathOptimizationRange: 0.0,
-      separationWeight: 8.0,
+      separationWeight: 0.0,
     };
 
     for (let bg of badguyList) {
       let navmesh_valid_startpoint = navigation_plugin.getClosestPoint(bg.collisionMesh.position);  // NB INITIAL PLACEMENT MUST BE NAVMESH-VALID!
-      agentParms.maxSpeed += -0.1 + 0.2 * Math.random();
       crowd.addAgent(navmesh_valid_startpoint, agentParms, bg.agentMesh);
     }
 
-    // Register a render loop to repeatedly render the scene
     engine.runRenderLoop(function () {
         scene.render();
     });
 };
 
 const update = function () {
-    
     direction.normalize();
 
     const deltaTime = scene.getAnimationRatio();
@@ -363,7 +300,6 @@ const update = function () {
       
         for (let badguy of badguyList) {
             if (bullet.intersectsMesh(badguy.collisionMesh, true)) {
-                console.log("Bullet collided with badguy!");
                 dead_badguys.push(badguy);
                 dead_bullets.push(bullet);
                 destroyCharacter(badguy);
@@ -409,61 +345,46 @@ const update = function () {
 
 const handleInput = function (kbInfo) {
     if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {
-        if (kbInfo.event.key == "a") {
-            direction = BABYLON.Vector3.Right();
+        switch (kbInfo.event.key) {
+                case " ":
+                case "w":
+                case "d":
+                case "a":
+                case "s":
+                    kbarray.unshift(kbInfo.event.key);
+                    let set = new Set(kbarray);
+                    kbarray = [...set];
+                    break;
         }
-        else if (kbInfo.event.key == "d") {
-            direction = BABYLON.Vector3.Left();
-        }
-        else if (kbInfo.event.key == "w") {
-            direction = BABYLON.Vector3.Backward();
-        }
-        else if (kbInfo.event.key == "s") {
-            direction = BABYLON.Vector3.Forward();
-        } 
-        
-        if (!direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
-            setCharacterState(player, "walk");
-        }
+    } else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) {
+            let index = kbarray.indexOf(kbInfo.event.key);
+            if (index != -1) {
+                kbarray.splice(index, 1);
+            }
+    }
 
-        if (canSpawnBullet && kbInfo.event.key == " ") {
-            spawnBullet(player.collisionMesh);
-            setCharacterState(player, "attack");
-            canSpawnBullet = false;
-
-            setTimeout(() => {
-                canSpawnBullet = true;
-            }, 100);
+    direction = BABYLON.Vector3.Zero();
+    if (kbarray.length > 0) {
+        switch(kbarray[0]) {
+            case " ":
+                spawnBullet(player.collisionMesh);
+                break;
+            case "w":
+                direction = BABYLON.Vector3.Backward();
+                break;
+            case "d":
+                direction = BABYLON.Vector3.Left();
+                break;
+            case "a":
+                direction = BABYLON.Vector3.Right();
+                break;
+            case "s":
+                direction = BABYLON.Vector3.Forward();
+                break;
         }
     }
-    else if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYUP) {
-        if (kbInfo.event.key == "a" || kbInfo.event.key == "d") {
-            direction.x = 0;
-        }
-        else if (kbInfo.event.key == "w" || kbInfo.event.key == "s") {
-            direction.z = 0;
-        }
+}
 
-        if (direction.equalsWithEpsilon(BABYLON.Vector3.ZeroReadOnly, 0.001)) {
-            setCharacterState(player, "idle");
-        }
-    }
-    // DEBUG //////////////////////////////////////////////////////////
-    if (kbInfo.type == BABYLON.KeyboardEventTypes.KEYDOWN) {
-        if (kbInfo.event.key == "g") {
-          if (!is_debugger_showing) {
-            scene.debugLayer.show();
-            is_debugger_showing = true;
-          } else {
-            scene.debugLayer.hide();
-            is_debugger_showing = false;
-          }
-        }
-    }
-    // DEBUG //////////////////////////////////////////////////////////
-};
-
-// Watch for browser/canvas resize events
 window.addEventListener("resize", function () {
     engine.resize();
 });
@@ -471,5 +392,4 @@ window.addEventListener("resize", function () {
 scene.onKeyboardObservable.add(handleInput);
 scene.onBeforeRenderObservable.add(update);
 
-// Do the thing
 start();
