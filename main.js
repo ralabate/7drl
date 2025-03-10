@@ -16,7 +16,7 @@ let pathLine;
 
 let is_debugger_showing = false;
 
-const playerSpeed = 2 + 1.45; // in meters per second
+const playerSpeed = 4.0; // in meters per second
 let player;
 let direction = BABYLON.Vector3.Zero();
 let facing = BABYLON.Vector3.Zero();
@@ -25,14 +25,18 @@ let canSpawnBullet = true;
 const bulletSpeed = 5.5; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
-const MAXIMUM_BADDIES = 100;
-const badguySpeed = 0.7; // in meters per second
+
+const MAXIMUM_BADDIES = 300;
+const badguySpeed = 0.8; // in meters per second
+const BADGUY_THINK_TIME = 2.0; // in seconds
 let badMeshContainers;
 let bulletList = [];
 let badguyList = [];
 
-const SPAWN_RATE = 1.5; // in seconds
+const SPAWN_RATE = 2.5; // in seconds
 let spawnerList = [];
+const spawnerMaterial = new BABYLON.StandardMaterial("spawner");
+
 
 const createMeshContainer = function (result) {
     const meshContainer = new BABYLON.AssetContainer(scene);
@@ -95,9 +99,23 @@ const loadEnvironment = function () {
     groundMaterial.diffuseColor = new BABYLON.Color3(0.10, 0.10, 0.10);
     ground.material = groundMaterial;
 
+    const wallMaterial = new BABYLON.StandardMaterial("wall");
+    wallMaterial .diffuseColor = new BABYLON.Color3(0.40, 0.40, 0.40);
+    let box1 = BABYLON.MeshBuilder.CreateBox("box1", { width: 3, height: 3, depth: 10 });
+    let box2 = BABYLON.MeshBuilder.CreateBox("box2", { width: 20, height: 3, depth: 3});
+    let box3 = BABYLON.MeshBuilder.CreateBox("box3", { width: 3, height: 3, depth: 5});
+    box3.position.z = -10.0;
+    let box4 = BABYLON.MeshBuilder.CreateBox("box4", { width: 3, height: 3, depth: 5});
+    box4.position.z = 10.0;
+    box1.material = box2.material = box3.material = box4.material = wallMaterial;
+
     let mesh_list = [];
     mesh_list.push(ground);
-    merged_mesh_for_nav = BABYLON.Mesh.MergeMeshes(mesh_list); // <== overwrites box material with ground material
+    mesh_list.push(box1);
+    mesh_list.push(box2);
+    mesh_list.push(box3);
+    mesh_list.push(box4);
+    merged_mesh_for_nav = BABYLON.Mesh.MergeMeshes(mesh_list, true, true, undefined, false, true); // <== overwrites box material with ground material
 
     let navmesh_parameters = {
       cs: 0.2,
@@ -146,8 +164,7 @@ const createCharacter = function (idle, walk, attack, id) {
     newPlayer.walkMesh.setParent(newPlayer.collisionMesh);
     newPlayer.attackMesh.setParent(newPlayer.collisionMesh);
 
-    newPlayer.agentMesh.isVisible = true;
-    
+    newPlayer.agentMesh.isVisible = false;
     newPlayer.collisionMesh.isVisible = false;
     newPlayer.collisionMesh.showBoundingBox = false;
     newPlayer.collisionMesh.checkCollisions = true;
@@ -201,8 +218,7 @@ function spawnBullet(origin) {
     lookat_jitter.y = -0.02 + 0.04 * Math.random();
     lookat_jitter.z = -0.05 + 0.10 * Math.random();
 
-    //const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.05 + width_jitter, height: 0.05 + height_jitter, depth: 0.15 + depth_jitter });
-    const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.05, height: 0.05, depth: 0.15 });
+    const bullet = BABYLON.MeshBuilder.CreateBox("bullet", { width: 0.05 + width_jitter, height: 0.05 + height_jitter, depth: 0.15 + depth_jitter });
 
     bullet.position = origin.position.clone();
     bullet.position.x += 0.55 + x_jitter;
@@ -214,6 +230,22 @@ function spawnBullet(origin) {
     bullet.material.diffuseColor = new BABYLON.Color3(1.0 + r_jitter, 1.0 + g_jitter, 0.3 + b_jitter);
 
     bulletList.push(bullet);
+}
+
+function spawnSpawner(spawn_x, spawn_z) {
+  let spawner = {
+    mesh: new BABYLON.MeshBuilder.CreateBox("spawner", {width: 3, height: 3}),
+    x: spawn_x,
+    z: spawn_z,
+    hp: 100,
+    timer: SPAWN_RATE,
+  };
+
+  spawner.mesh.position = new BABYLON.Vector3(spawn_x, 0, spawn_z);
+  spawner.mesh.material = spawnerMaterial;
+  spawner.mesh.material.diffuseColor = new BABYLON.Color3(0.7, 0.1, 0.0);
+    
+  spawnerList.push(spawner);
 }
 
 function spawnBadGuy(spawn_x, spawn_z) {
@@ -228,6 +260,8 @@ function spawnBadGuy(spawn_x, spawn_z) {
         badMeshContainers.attack.meshes[0],
         -1,
     );
+
+    badguy.thinktime = Math.random();
 
     badguy.collisionMesh.checkCollisions = false;
     setCharacterState(badguy, "idle");
@@ -246,12 +280,10 @@ function spawnBadGuy(spawn_x, spawn_z) {
     let navmesh_valid_startpoint = navigation_plugin.getClosestPoint(spawn_point);  // NB INITIAL PLACEMENT MUST BE NAVMESH-VALID!
     let crowd_id = crowd.addAgent(navmesh_valid_startpoint, agentParms, badguy.agentMesh);
 
-badguy.agentMesh.position.x = spawn_x;
-badguy.agentMesh.position.z = spawn_z;
-badguy.collisionMesh.position.x = spawn_x;
-badguy.collisionMesh.position.z = spawn_z;
-//badguyList.push(badguy);
-//return;
+    badguy.agentMesh.position.x = spawn_x;
+    badguy.agentMesh.position.z = spawn_z;
+    badguy.collisionMesh.position.x = spawn_x;
+    badguy.collisionMesh.position.z = spawn_z;
 
     if (crowd_id != -1) {
         badguy.id = crowd_id;
@@ -276,11 +308,13 @@ const start = async function () {
 
     badMeshContainers = await loadBadMeshContainers(); // used later by spawner
 
-    spawnerList.push({timer:SPAWN_RATE, x:+12.0, z:+12.0});
-    spawnerList.push({timer:SPAWN_RATE, x:+12.0, z:-12.0});
-    spawnerList.push({timer:SPAWN_RATE, x:-12.0, z:+12.0});
-    spawnerList.push({timer:SPAWN_RATE, x:-12.0, z:-12.0});
-    spawnerList.push({timer:SPAWN_RATE, x:+0.0, z:+0.0});
+    spawnSpawner(12, 12);
+    spawnSpawner(-12, 12);
+    spawnSpawner(12, -12);
+    spawnSpawner(-12, -12);
+
+    spawnSpawner(-3, 3);
+    spawnSpawner(-3, -3);
 
     await Recast();
     navigation_plugin = new BABYLON.RecastJSPlugin();
@@ -298,10 +332,17 @@ const update = function () {
     direction.normalize();
 
     const deltaTime = scene.getAnimationRatio();
+    const delta_time_in_seconds = scene.deltaTime / 1000.0;
+
+    const deadMaterial = new BABYLON.StandardMaterial("deadMaterial");
+    deadMaterial.diffuseColor = new BABYLON.Color3(0.0, 0.00, 0.00);
 
     // Update spawners
     for (let s of spawnerList) {
-      let delta_time_in_seconds = scene.deltaTime / 1000.0;
+      if (s.hp < 0) {
+        s.mesh.material = deadMaterial;
+        continue;
+      }
       s.timer -= delta_time_in_seconds;
       if (s.timer < 0) {
         s.timer = SPAWN_RATE;
@@ -310,9 +351,15 @@ const update = function () {
     }
 
     // Update bad guys
-    let dest = player.collisionMesh.position;
+    let dest = player.collisionMesh.position.clone();
+
+
     for (let bg of badguyList) {
-      crowd.agentGoto(bg.id, navigation_plugin.getClosestPoint(dest));
+      bg.thinktime -= delta_time_in_seconds;
+      if (bg.thinktime < 0) {
+        crowd.agentGoto(bg.id, navigation_plugin.getClosestPoint(dest));
+        bg.thinktime = BADGUY_THINK_TIME;
+      }
       bg.collisionMesh.position.x = bg.agentMesh.position.x; 
       bg.collisionMesh.position.z = bg.agentMesh.position.z; 
     }
@@ -328,7 +375,6 @@ const update = function () {
     let dead_badguys = [];
     for (let bullet of bulletList) {
 
-        let delta_time_in_seconds = scene.deltaTime / 1000.0;
         bullet.position.addInPlace(bullet.forward.scale(bulletSpeed * delta_time_in_seconds));
       
         bullet.computeWorldMatrix();
@@ -342,6 +388,18 @@ const update = function () {
                 break;
             }
         }
+
+        for (let s of spawnerList) {
+           s.mesh.computeWorldMatrix();
+           if (bullet.intersectsMesh(s.mesh, true)) {
+               s.hp--;
+               dead_bullets.push(bullet);
+               bullet.dispose();
+               break;
+           }
+           
+        }
+        
 
     }
 
@@ -373,7 +431,6 @@ const update = function () {
     player.collisionMesh.lookAt(targetPosition);
 
     // Movement code and gravity using built-in collision detection
-    let delta_time_in_seconds = scene.deltaTime / 1000.0;
     let movementVector = direction.scale(playerSpeed * delta_time_in_seconds).add(BABYLON.Vector3.Down().scale(0.1));
     player.collisionMesh.moveWithCollisions(movementVector);
 };
