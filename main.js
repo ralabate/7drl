@@ -25,13 +25,13 @@ let canSpawnBullet = true;
 const bulletSpeed = 5.5; // in meters per second
 const bulletMaterial = new BABYLON.StandardMaterial("bullet");
 
-const MAXIMUM_BADDIES = 40;
+const MAXIMUM_BADDIES = 100;
 const badguySpeed = 0.7; // in meters per second
 let badMeshContainers;
 let bulletList = [];
 let badguyList = [];
 
-const SPAWN_RATE = 2.0; // in seconds
+const SPAWN_RATE = 1.5; // in seconds
 let spawnerList = [];
 
 const createMeshContainer = function (result) {
@@ -146,8 +146,8 @@ const createCharacter = function (idle, walk, attack, id) {
     newPlayer.walkMesh.setParent(newPlayer.collisionMesh);
     newPlayer.attackMesh.setParent(newPlayer.collisionMesh);
 
-    newPlayer.agentMesh.isVisible = false;
-
+    newPlayer.agentMesh.isVisible = true;
+    
     newPlayer.collisionMesh.isVisible = false;
     newPlayer.collisionMesh.showBoundingBox = false;
     newPlayer.collisionMesh.checkCollisions = true;
@@ -246,7 +246,12 @@ function spawnBadGuy(spawn_x, spawn_z) {
     let navmesh_valid_startpoint = navigation_plugin.getClosestPoint(spawn_point);  // NB INITIAL PLACEMENT MUST BE NAVMESH-VALID!
     let crowd_id = crowd.addAgent(navmesh_valid_startpoint, agentParms, badguy.agentMesh);
 
-    badguy.collisionMesh.setEnabled(false); // <== figuring out why badguy flickers at origin before going to proper location
+badguy.agentMesh.position.x = spawn_x;
+badguy.agentMesh.position.z = spawn_z;
+badguy.collisionMesh.position.x = spawn_x;
+badguy.collisionMesh.position.z = spawn_z;
+//badguyList.push(badguy);
+//return;
 
     if (crowd_id != -1) {
         badguy.id = crowd_id;
@@ -271,11 +276,11 @@ const start = async function () {
 
     badMeshContainers = await loadBadMeshContainers(); // used later by spawner
 
-    //spawnerList.push({timer:SPAWN_RATE, x:+12.0, z:+12.0});
-    //spawnerList.push({timer:SPAWN_RATE, x:+12.0, z:-12.0});
-    //spawnerList.push({timer:SPAWN_RATE, x:-12.0, z:+12.0});
-    //spawnerList.push({timer:SPAWN_RATE, x:-12.0, z:-12.0});
-    spawnerList.push({timer:SPAWN_RATE, x:2.0, z:+2.0});
+    spawnerList.push({timer:SPAWN_RATE, x:+12.0, z:+12.0});
+    spawnerList.push({timer:SPAWN_RATE, x:+12.0, z:-12.0});
+    spawnerList.push({timer:SPAWN_RATE, x:-12.0, z:+12.0});
+    spawnerList.push({timer:SPAWN_RATE, x:-12.0, z:-12.0});
+    spawnerList.push({timer:SPAWN_RATE, x:+0.0, z:+0.0});
 
     await Recast();
     navigation_plugin = new BABYLON.RecastJSPlugin();
@@ -283,8 +288,6 @@ const start = async function () {
     loadEnvironment();
 
     crowd = navigation_plugin.createCrowd(MAXIMUM_BADDIES, 0.1, scene);
-
-    spawnBadGuy(0, 0);
 
     engine.runRenderLoop(function () {
         scene.render();
@@ -312,7 +315,6 @@ const update = function () {
       crowd.agentGoto(bg.id, navigation_plugin.getClosestPoint(dest));
       bg.collisionMesh.position.x = bg.agentMesh.position.x; 
       bg.collisionMesh.position.z = bg.agentMesh.position.z; 
-      bg.collisionMesh.setEnabled(true); // <== figuring out why badguy flickers at origin before going to proper location
     }
 
     /*
